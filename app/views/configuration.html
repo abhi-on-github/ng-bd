@@ -1,0 +1,371 @@
+{% extends 'base.html' %}
+{% load url from future %}
+{% block main_content %}
+<div class="row-fluid">
+   <div class="span12">
+      <div class="tabbable">
+         <ul class="nav nav-tabs padding-12 tab-color-blue">
+            <li id="image-settings_tab">
+               <a data-toggle="tab" href="#image-settings">
+                  Images
+               </a>
+            </li>
+
+            <li id="flavor-settings_tab">
+               <a data-toggle="tab" href="#flavor-settings">
+                  Flavor
+               </a>
+            </li>
+         </ul>
+
+         <div class="tab-content">
+
+            <div id="image-settings" class="tab-pane">
+               <div class="widget-box transparent no-border">
+                  <div class="widget-header widget-header-large no-border">
+                     <h4></h4>
+                     <div class="widget-toolbar no-border">
+                     </div>
+                  </div>
+               </div>
+               <table id="id_images_table" class="table table-striped table-bordered table-hover bd-table">
+                  {% include 'table_headers.html' with headers=image_headers %}
+               </table>
+            </div>
+
+            <div id="flavor-settings" class="tab-pane" >
+               <div class="widget-box transparent no-border">
+                  <div class="widget-header widget-header-large no-border">
+                     <h4></h4>
+                     <div class="widget-toolbar no-border">
+                        <a href="{% url 'addflavor_view' %}" class="bds-modal-form">
+                           <button class="btn btn-success btn-small" >
+                              <i class="icon-plus"></i>Add New Flavor
+                           </button>
+                        </a>
+                     </div>
+                  </div>
+               </div>
+               <table id="flavors_table" class="table table-striped table-bordered table-hover bd-table">
+                  {% include 'table_headers.html' with headers=flavor_headers %}
+                  <tbody>
+                  {% for row in flavor_data_list %}
+                    <tr>
+                      <td style="display:none">{{ row.id }}</td>
+                      <td>{{ row.flavor_name }}</td>
+                      <td>{{ row.flavor_desc }}</td>
+                      <td>{{ row.cores }}</td>
+                      <td>{{ row.memory }}</td>
+                      <td class="status" id="status">
+                      {% if row.flavor_state == 'ready' %}
+                        <span class="center label label-success" style="width:60px;">ready</span>
+                      {% elif row.flavor_state == 'adding' %}
+                        <span class="center label label-info" style="width:60px;">creating</span>
+                      {% elif row.flavor_state == 'deleting' %}
+                        <span class="center label label-important" style="width:60px;">deleting</span>
+                      {% endif %}
+                      <td>
+                        <div class="visible-desktop action-buttons row-actions"></div>
+                      </td>
+                    </tr>
+                  {% endfor %} 
+                  </tbody>
+               </table>
+            </div>
+
+         </div>
+      </div>
+   </div>
+</div>   
+
+{% endblock %}
+{% block page_script %}
+<script id="source" language="javascript" type="text/javascript">
+   $(document).ready(function () {
+       var subtab = document.location.href.split('/').pop();
+       $('#'+subtab+'_tab').addClass('active');
+       $('#'+subtab).addClass('tab-pane in active');
+   });
+   $('#image-settings_tab').click(function() {
+       var url = '{% url "configuration_view" %}image-settings';
+       document.location.href = url;
+   });
+   $('#flavor-settings_tab').click(function() {
+       var url = '{% url "configuration_view" %}flavor-settings';
+       document.location.href = url;
+   });
+</script>
+
+<script type="text/javascript">
+
+   $(document).ready(function () {
+       
+       registerDataTable('#id_images_table',
+                         '#',
+                         '#',
+                         '{% url "imagesettings_view" %}',
+                         '',
+                         '.table_delete',
+                         {{image_headers|safe}}, {{image_headers|length}},
+                         0, 0);
+
+       var config_data = {{config_data|safe}};
+       var startTimer = false;
+
+       function getStatusFromDistroState(distro) {
+           var state = '';
+           var action = '<div class="visible-desktop action-buttons row-actions">';
+           switch (distro.distro_state) {
+               case "available" :
+                   state = '<div class="progress progress-warning progress-striped "> \
+                               <div class="bar" style="width:100%;">available</div> \
+                            </div>';
+                   action += insertInstallButton();
+                   break;
+               case "installing" :
+                   state = '<div class="progress progress-info progress-striped"> \
+                               <div class="bar" style="width:100%;">installing</div> \
+                            </div>';
+                   startTimer = true;
+                   break;
+               case "starting" :
+                   state = '<div class="progress progress-info progress-striped active"> \
+                               <div class="bar" style="width:100%;">starting</div> \
+                            </div>';
+                   action += insertCancelButton();
+                   startTimer = true;
+                   break;
+               case "downloading" :
+                   tokens = distro.distro_state_info.split("/");
+                   var percent = Math.ceil(tokens[0]/tokens[1]*100);
+                   if (isNaN(percent)) {
+                       percent = "0";
+                   }
+                   state = '<div class="progress progress-info progress-striped active"> \
+                               <div class="bar" style="width:100%;">downloading ('+percent+' %)</div> \
+                            </div>';
+                   action += insertCancelButton();
+                   startTimer = true;
+                   break;
+               case "verifying" :
+                   state = '<div class="progress progress-info progress-striped "> \
+                               <div class="bar" style="width:100%;">verifying</div> \
+                            </div>';
+                   startTimer = true;
+                   action += insertCancelButton();
+                   break;
+               case "installed" :
+                   state = '<div class="progress progress-success progress-striped "> \
+                               <div class="bar" style="width:100%;">installed</div> \
+                            </div>';
+                   break;
+               case "error" :
+                   state = '<div class="progress progress-danger" data-rel="tooltip" data-placement="bottom" title="'+distro.distro_state_info+'"> \
+                               <div class="bar" style="width:100%;">error</div> \
+                            </div>';
+                   action += insertInstallButton();
+                   break;
+           }
+           action += '</div>';
+           return [state, action];
+       }
+
+       for (var i = 0; i < config_data.distro_list.length; i++) {
+           distro = config_data.distro_list[i];
+           state_action = getStatusFromDistroState(distro);
+
+           oTable[0].fnAddData([distro.distro_name, distro.distro_version, distro.distro_description, state_action[0], state_action[1]]);
+       }
+       if (startTimer) {
+           bdStartAjaxTimer(5, 'timer', timerCallback);
+       }
+
+       function checkAndStartTimer() {
+           for (var i = 0; i < oTable[0].fnGetData().length; i++) {
+               var rowData = oTable[0].fnGetData(i);
+               status = $(rowData[3]).text().trim();
+               if (status == "installing" || status == "starting" || status.indexOf("downloading") == 0 || status == "verifying") {
+                   // We have to start the timer...
+                   bdStartAjaxTimer(5, 'timer', timerCallback);
+                   break;
+               }
+           }
+       }
+
+       var updateRowData = new Array();
+
+       function timerCallback() {
+           updateRowData = [];
+           for (var i = 0; i < oTable[0].fnGetData().length; i++) {
+               var rowData = oTable[0].fnGetData(i);
+               status = $(rowData[3]).text().trim();
+               if (status == "installing" || status == "starting" || status.indexOf("downloading") == 0 || status == "verifying") {
+                   updateRowData.push({'data' : rowData, 'index' : i});
+               }
+           }
+           if (updateRowData.length) {
+               updateStatus(updateRowData, 0);
+           }
+       }
+       function updateStatus(rowData, i) {
+           if (i == rowData.length) {
+               // Scan through the table to see if we have to start the timer again.
+               checkAndStartTimer();
+               return;
+           }
+
+           row = rowData[i].data;
+           index = rowData[i].index;
+
+           status = $(row[3]).html();
+           var data = {
+               operation: 'get_status',
+               id: row[0],
+           };
+           $.ajax({
+               url: '{% url "imagesettings_view" %}',
+               method: 'post',
+               contentType: "application/json; charset=utf-8",
+               data: JSON.stringify(data),
+               csrfmiddlewaretoken: csrftoken,
+               headers: {'X-CSRFToken' : csrftoken},
+               success: function(result) {
+                   state_action = getStatusFromDistroState(result);
+                   oTable[0].fnUpdate(state_action[0], index, 3, false);
+                   oTable[0].fnUpdate(state_action[1], index, 4, false);
+                   updateStatus(rowData, i+1);
+                   return false;
+               },
+               error: function() {
+                   console.log("Got an error while trying to get distro status");
+                   location.reload(true);
+                   return false;
+               }
+           });
+       }
+   });
+
+</script>       
+
+<script type="text/javascript">
+  
+   var flavor_list = {{flavor_list|safe}};
+
+   function deleteFlavorCallback(flavor_name, status, details) {
+       if (status == "success") {
+           bdNotify( 'Flavor ( ' + flavor_name + ' )' + ' successfully deleted', "success");
+       }
+       else {
+           bdNotify('Failed to delete the Flavor ( ' + flavor_name + ' )</br>' + details, "failed");
+       }
+   }
+
+   $(document).ready(function () {
+      //registering flavor management table
+      registerDataTable('#flavors_table',
+                         '#',
+                         '#',
+                         '{% url "configuration_view" %}',
+                         deleteFlavorCallback,
+                         '',
+                         {{flavor_headers|safe}}, {{flavor_headers|length}},
+                         0, 1);
+
+       var editUrl = '{% url "editflavor_view" %}?flavor_id=';
+
+       for (var i = 0; i < oTable[1].fnGetData().length; i++) {
+           button = '<div class="visible-desktop action-buttons row-actions">';
+           //button += insertEditButton('flavors', editUrl+oTable[1].cell(i, 0));
+           button += insertEditButton('flavors', editUrl+(oTable[1].fnGetData(i)[0]));
+           button += insertDeleteButton();
+           button += '</div>';
+           oTable[1].fnUpdate(button, i, 6, false);
+       }
+
+       //Continuously pulling the status of flavor in edit or adding status
+       function updateFlavorStatus(rowData, i) 
+       {
+           if (i == rowData.length) {
+               checkAndStartTimerFlavor();
+               return;
+           }
+
+           var row = rowData[i].data;
+           var index = rowData[i].index;
+
+           var status = $(row[5]).html();
+           var getStateUrl = editUrl+row[0];
+
+           $.ajax({
+               url: getStateUrl,
+               method: 'get',
+               contentType: "application/json; charset=utf-8",
+               csrfmiddlewaretoken: csrftoken,
+               headers: {'X-CSRFToken' : csrftoken},
+               success: function(result) {
+                   var newValue = row[5];
+                   switch (result.status) {
+                       case 'adding':
+                           newValue = '<span class="center label label-info" style="width:60px;">creating</span>';
+                           break;
+                       case 'deleting':
+                           newValue = '<span class="center label label-important" style="width:60px;">deleting</span>';
+                           break;
+                       case 'error':         
+                           newValue = '<span class="center label label-important" style="width:60px;">error</span>';
+                           break;
+                       case 'ready':
+                           newValue = '<span class="center label label-success" style="width:60px;">ready</span>';
+                           break;
+                       }
+                   oTable[1].fnUpdate(newValue, index, 5, false);
+             
+                   updateFlavorStatus(rowData, i+1);
+                   return false;
+               },
+               error: function() {
+                   console.log("Got an error while trying to get Flavor status");
+                   location.reload(true);
+                   return false;
+               }
+           });
+
+       }
+
+       var updateFlavorRowData = new Array();
+
+       function timerCallbackFlavor() 
+       {
+           updateFlavorRowData = [];
+
+           for (var i = 0; i < oTable[1].fnGetData().length; i++) {
+             var rowData = oTable[1].fnGetData(i);
+             var status = $(rowData[5]).html();
+             if (status == "adding" || status == "deleting") {
+               updateFlavorRowData.push({'data' : rowData, 'index' : i});
+             }
+           }
+           if (updateFlavorRowData.length) {
+               updateFlavorStatus(updateFlavorRowData, 0);
+           }
+       }
+
+       function checkAndStartTimerFlavor() 
+       {
+           for (var i = 0; i < oTable[1].fnGetData().length; i++) {
+             var rowData = oTable[1].fnGetData(i);
+             var status = $(rowData[5]).html();
+             if (status == "adding" || status == "deleting") {
+               // We have to start the timer...
+               bdStartAjaxTimer(15, 'timer', timerCallbackFlavor);
+               break;
+             }
+           }
+       }
+
+       checkAndStartTimerFlavor();
+
+    });
+</script>   
+
+{% endblock %}

@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% load url from future %}
+{% block main_content %}
+<div class="row-fluid">
+   <form class="bds-form form-horizontal" id="licenseActivation"  action='{% url "license_view" %}' enctype="multipart/form-data" method="POST">{% csrf_token %}
+      <div class="control-group">
+         <label class="control-label">BlueData License Key</label>
+         <div class="input controls">
+            <input type="text" name="licenseKey" id="licenseKey" class="input-xlarge" value="{{license_key}}">
+         </div>
+      </div>    
+      <div class="control-group">
+         <label class="control-label">Your Email Address</label>
+         <div class="controls">
+            <input type="text" name="email" id="email" class="input-xlarge" value="{{username}}">
+         </div>
+      </div>
+      <div class='control-group'>
+         <div class='controls'>
+            <input type='checkbox' name='reActivation' id='reActivation' class='ace' />
+            <span class='lbl'> Re-Activation of a previously registered license</span>
+         </div>
+      </div>
+      <!-- Fields for no re-activation option -->
+      <div class='no-re-activation'>
+         <div class="control-group">
+            <label class="control-label">Enter Password </label>
+            <div class="controls">
+               <input type="password" name="password" id="password" class="input-xlarge" placeholder="Password" />
+            </div>
+         </div>
+         <div class="control-group">
+            <label class="control-label">Confirm Password </label>
+            <div class="controls">
+               <input type="password" name="confirmPassword" id="confirmPassword" class="input-xlarge" placeholder="Password" />
+            </div>
+         </div>
+      </div>
+      <!-- Fields for re-activation option -->
+      <div class='re-activation' style="display:none;">
+         <div style='border:2px solid red; width:450px; padding:5px; margin-bottom:15px;'>Warning: This will disable your license on your original BlueData Cluster if that cluster is still in operation.</div>
+         <div class="control-group">
+            <label class="control-label">Old Password </label>
+            <div class="controls">
+               <input type="password" name="oldPassword" id="oldPassword" class="input-xlarge" placeholder="Password" />
+            </div>
+         </div>
+         <div class="control-group">
+            <label class="control-label">Unique New Password </label>
+            <div class="controls">
+               <input type="password" name="uniquePassword" id="uniquePassword" class="input-xlarge" placeholder="Password" />
+            </div>
+         </div>
+      </div>
+      <div class="form-actions">
+         <button type="button" id="form-submit" class="pull-left btn btn-primary" type="submit"><i class="icon-ok"></i> Submit</button>
+      </div>
+   </form>
+</div>
+{% endblock %}
+{% block page_script %}
+
+<script type="text/javascript">
+   $(document).ready(function () {
+       //handle when re-activate existing license option is clicked
+       $('#reActivation').click(function(){
+           // Reset the password fields..
+           $('#password').val('');
+           $('#confirmPassword').val('');
+           $('#oldPassword').val('');
+           $('#uniquePassword').val('');
+
+           //when re-activate checkbox is set to true
+           if($(this).is(':checked')) {
+               $('.no-re-activation').hide();
+               $('.re-activation').show();
+           }
+           else { //when re-activate checkbox is set to false
+               $('.re-activation').hide();
+               $('.no-re-activation').show();
+           }
+             
+//           $('#uniquePassword').rules('add', 'required');
+//           $('#oldPassword').rules('add', 'required');
+           $('.control-group.error').removeClass('error');
+       });
+       //set the default behavior
+       $('.re-activation').hide();
+       $('.no-re-activation').show();
+
+       $.validator.addMethod("validReactivate", function(value, element) {
+           if ($('#uniquePassword').val() == $('#oldPassword').val()) {
+               return false;
+           }
+           return true;
+       }, "Old Password and Unique New Passwords cannot be seen");
+
+       
+       var validator = $('#licenseActivation').validate({
+           errorElement: 'span',
+           errorClass: 'help-inline',
+           focusInvalid: false,
+           rules: {
+               licenseKey: {
+                   required: true,
+                   minlength: 24,
+                   maxlength: 24,
+               },
+               email: {
+                   required: true,
+                   email: true
+               },
+               confirmemail: {
+                   equalTo: '#email'
+               },
+               password: {
+                   required: true,
+               },
+               confirmPassword: {
+                   equalTo: '#password',
+                   required: true,
+               },
+               oldPassword: {
+                   required: true,
+                   validReactivate: true,
+               },
+               uniquePassword: {
+                   required: true,
+                   validReactivate: true,
+               }
+           },
+           messages: {
+               licenseKey: 'Please select a valid license (Must be 24 characters)',
+               email: {
+                   required: "Please provide a valid email.",
+                   email: "Please provide a valid email."
+               },
+               confirmemail: {
+                   required: "Please provide a valid password.",
+                   equalTo: "Email Addresses do not match",
+               },
+               password: 'Please provide a valid password',
+               confirmPassword: {
+                   required: "Please provide a valid password.",
+                   equalTo: "Passwords do not match",
+               },
+               oldPassword: 'Please provide a valid password',
+               uniquePassword: 'Please provide a unique new password'
+           },
+
+           invalidHandler:  function (event, validator) {
+               $('.alert-error', $('#assignusers')).show();
+           },
+
+           highlight: function (e) {
+               $(e).closest('.control-group').removeClass('info').addClass('error');
+           },
+
+           success: function (e) {
+               $(e).closest('.control-group').removeClass('error').addClass('info');
+               $(e).remove();
+           },
+             
+           errorPlacement: function (error, element) {
+               bdStopSpin();
+               if(element.is(':checkbox') || element.is(':radio')) {
+                   var controls = element.closest('.controls');
+                   if(controls.find(':checkbox,:radio').length > 1) controls.append(error);
+                   else error.insertAfter(element.nextAll('.lbl').eq(0));
+               }
+               else error.insertAfter(element);
+           },
+
+           submitHandler: function (form) {
+              bdsFormSubmit(form, "Failed to validate license key", '{% url "dashboard_view" %}');
+           },
+       });
+   });
+</script>
+{% endblock %}

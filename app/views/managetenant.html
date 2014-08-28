@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% load url from future %}
+{% block main_content %}
+<div class="span12">
+<div class="widget-box transparent no-border">
+   <div class="widget-header widget-header-large no-border">
+      <h4></h4>
+      <div class="widget-toolbar no-border">
+         <a href='{% url "createtenant_view" %}'>
+            <button class="btn btn-success btn-small" >
+               <i class="icon-plus"></i>
+               Create
+            </button>
+         </a>
+         <a href='#'>
+            <button class="btn btn-danger btn-small table_delete">
+               <i class="icon-trash"></i>
+               Delete
+            </button>
+         </a>
+      </div>
+   </div>
+</div>
+
+<table id="tenants_table" class="table table-striped table-bordered table-hover bd-table" >
+   {% include 'table_headers.html' %}
+   <tbody>
+      {% for row in data %}
+      <tr>
+         <td class='center'>
+         {% if row.in_use == "Yes" %}
+            <label><input type='checkbox' disabled /><span class="lbl"></span></label>
+         {% else %}
+            <label><input type='checkbox' /><span class="lbl"></span></label>
+         {% endif %}
+         </td>
+         <td style="display:none">{{ row.id }}</td>
+         <td class="row-extras-link">{{ row.name }}</td>
+         <td>{{ row.description }}</td>
+         {% if vm_private_ip_support %}
+         <td>{{ row.network }}</td>
+         <td>{{ row.vlanid }}</td>
+         <td>{{ row.network_id }}</td>
+         {% else %}
+         <td style="display:none"></td>
+         <td style="display:none"></td>
+         <td style="display:none"></td>
+         {% endif %}
+
+         {% if row.name == 'Site Admin' %}
+         <td></td>
+         {% else %}
+         <td>Cores={{ row.inusecores }}
+
+         {% if row.cores == "undefined"%}
+         ( No Quota )
+         {% else %}
+         /{{ row.cores }}
+         {% endif %}
+         </br>Memory={{ row.inusememory }}
+
+         {% if row.memory == "undefined" %}
+         GB ( No Quota )
+         {% else %}
+         /{{ row.memory }} GB
+         {% endif %}
+         </td>
+         {% endif %}
+
+         <td>
+            <div class="visible-desktop action-buttons row-actions"></div>
+         </td>
+         <td style="display:none">{{ row.in_use }}</td>
+      </tr>
+      {% endfor %}
+   </tbody>
+</table>
+</div>
+{% endblock %}
+
+{% block page_script %}
+<script id="source" language="javascript" type="text/javascript">
+   function deleteCallback(name, status, details) {
+       if (status == "success") {
+           bdNotify('Tenant ( ' + name + ' )' + ' successfully deleted', "success");
+       }
+       else {
+           bdNotify('Failed to delete the tenant ( ' + name + ' )</br>' + details, "failed");
+       }
+   }
+
+   registerDataTable('#tenants_table',
+                     '{% url "edittenant_view" %}?tenant_id=',
+                     '{% url "tenantextras_view" %}?tenant_id=',
+                     '{% url "managetenant_view" %}',
+                     deleteCallback,
+                     '.table_delete',
+                     {{headers|safe}}, {{headers|length}},
+                     1, 2);
+
+   /* setup row action buttons...*/
+   for (var i = 0; i < oTable[0].fnGetData().length; i++) {
+       var rowData = oTable[0].fnGetData(i);
+    
+       var button = '<div class="visible-desktop action-buttons row-actions">';
+
+       if (rowData[2] != 'Site Admin') {
+           button += insertEditButton();
+           // If tenant is in use, then don't delete it
+           if (rowData[9] == "No") {
+               button += insertDeleteButton();
+           }
+           button += insertLogButton('keypair', '{% url "tenantkeypair_view" %}?tenant_id=' + rowData[1]);
+       }
+
+       button += insertExtrasButton();
+       
+       button += '</div>';
+       oTable[0].fnUpdate(button, i, 8, false);
+   }
+
+</script>
+{% endblock %}

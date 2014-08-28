@@ -1,0 +1,139 @@
+{% extends 'modal_base.html' %}
+{% load url from future %}
+{% block modal_body %}
+
+{% if create_flavor == "active" %}
+<form class="bds-form bds-modal-form form-horizontal" id="flavorInfo" enctype="multipart/form-data" action='{% url "addflavor_view" %}' method="POST">{% csrf_token %}
+   <div class="control-group">
+      <label class="control-label">Name </label>
+      <div class="controls">
+         <input type="text" name="flavor_name" id="flavor_name" class="input-xlarge" />
+      </div>
+   </div>
+   <div class="control-group">
+      <label class="control-label">Description </label>
+      <div class="controls">
+         <input type="text" name="flavor_desc" id="flavor_desc" class="input-xlarge" />
+      </div>
+   </div>    
+{% else %}
+<form class="bds-form bds-modal-form form-horizontal" id="flavorInfo" enctype="multipart/form-data" action='{% url "editflavor_view" %}' method="POST">{% csrf_token %}
+   <div class="control-group" style="display:none;">
+      <div class="input controls">
+        <input type="text" name="uuid" id="uuid" value="{{ flavor_data.id }}" />
+      </div>
+   </div>
+   <div class="control-group">
+      <label class="control-label">Name </label>
+      <div class="controls">
+         <input type="text" name="flavor_name" id="flavor_name" class="input-xlarge" value="{{flavor_data.flavor_name}}" />
+      </div>
+   </div>
+   <div class="control-group">
+      <label class="control-label">Description </label>
+      <div class="controls">
+         <input type="text" name="flavor_desc" id="flavor_desc" class="input-xlarge" value="{{flavor_data.flavor_desc}}" />
+      </div>
+   </div>
+{% endif %}
+   <div class="control-group">
+      <label class="control-label">Cores</label>
+      <div class="controls">
+         <input type="text" name="cores" id="cores" value="{{flavor_data.cores}}" />
+      </div>
+   </div>
+   <div class="control-group">
+      <label class="control-label">Memory (GB)</label>
+      <div class="controls">
+         <input type="text" name="memory" id="memory" value="{{flavor_data.memory}}" />
+      </div>
+   </div>
+</form>
+{% endblock %}
+
+{% block page_script %}
+<script id="source" language="javascript" type="text/javascript">
+   $(document).ready(function () {
+       
+       var create_flavor = '{{create_flavor|safe}}';
+        
+       $.validator.addMethod("validFlavorName", function(value, element) {
+           //validate flavor name for both create and edit cases
+           var regexp = /^[0-9A-Za-z\-_\. ]+$/
+           if (!value.match(regexp) || value.length > 20) {
+               return false;
+           }
+
+           for (i = 0, len = flavor_list.length; i < len; i++) {
+               if (flavor_list[i] == value) {
+                   if (create_flavor != 'active') {
+                       var orig_name = '{{flavor_data.flavor_name|safe}}';
+                       if(orig_name == value) {
+                           return true;
+                       }
+                   }
+                   return false;
+               }
+           }
+           return true;
+       }, "Invalid format or flavor name exists. Please specify a different name.");
+
+       //initialize the Flavor Info form
+       $('#flavorInfo').validate({
+           errorElement: 'span',
+           errorClass: 'help-inline',
+           focusInvalid: false,
+           rules: {
+               flavor_name: {
+                   required: true,
+                   validFlavorName: true
+               },
+               flavor_desc: {
+                   required: true
+               },
+               cores: {
+                   min: 1,
+                   digits: true
+               },
+               memory: {
+                   min: 1,
+                   number: true,
+               }
+           },
+           messages: {
+               flavor_name: {
+                  required: 'Please provide a Flavor name limited to 20 characters. It should not contain any special characters.'
+               },
+               flavor_desc: 'Please provide the Flavor description',
+               cores: 'Please enter a valid cores value. Value cannot be zero',
+               memory: 'Please enter a valid memory value. Value cannot be zero'
+           },
+           invalidHandler:  function (event, validator) {
+               $('.alert-error', $('#flavorInfo')).show();
+           },
+
+           highlight: function (e) {
+               $(e).closest('.control-group').removeClass('info').addClass('error');
+           },
+
+           success: function (e) {
+               $(e).closest('.control-group').removeClass('error').addClass('info');
+               $(e).remove();
+           },
+             
+           errorPlacement: function (error, element) {
+              error.insertAfter(element);
+           },
+
+           submitHandler: function (form) {
+              if(create_flavor == 'active') {
+                bdsFormSubmit(form, "Failed to create new flavor", '{% url "configuration_view" %}flavor-settings');
+              }
+              else {
+                bdsFormSubmit(form, "Failed to edit flavor", '{% url "configuration_view" %}flavor-settings');
+              }
+           },
+       });
+   });
+</script>
+{% endblock %}

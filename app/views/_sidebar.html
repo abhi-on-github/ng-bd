@@ -1,0 +1,123 @@
+{% load url from future %}
+{% block _sidebar %}
+<ul class="nav nav-list bluedata-nav-list">
+   <li class="{{ dashboard }}" id='dashboardItem'>
+      <a href='{% url "dashboard_view" %}'>
+         <i class="nav-list-icon"></i>
+         <span class="menu-text"> Dashboard </span>
+      </a>
+   </li>
+
+   {% if request.session.role == "Site Admin" %}
+   <li class="separator"></li>
+   <li class="{{ tenants }}" id='tenantsItem'>
+      <a href="{% url 'managetenant_view' %}">
+         <i class="nav-list-icon"></i>
+         <span class="menu-text"> Tenants </span>
+      </a>
+   </li>
+   {% endif %}
+
+   {% if request.session.role == "Site Admin" %}
+   <li class="{{ users }} {{ sessions }}" id='usersItem'>
+      <a href="{% url 'manageuser_view' %}">
+         <i class="nav-list-icon"></i>
+         <span class="menu-text"> Users </span>
+      </a>
+   </li>
+   {% endif %}
+
+   {% if request.session.role != "Site Admin" %}
+   <li class="{{ jobs }}" id='jobsItem'>
+      <a href="{% url 'managejob_view' %}">
+         <i class="nav-list-icon"></i>
+         <span class="menu-text"> Jobs </span>
+      </a>
+   </li>
+   {% endif %}
+
+   {% if request.session.role != "Site Admin" %}
+   <li class="{{ clusters }} " id='clustersItem'>
+      <a href="{% url 'managecluster_view' %}">
+         <i class="nav-list-icon"></i>
+         <span class="menu-text"> Clusters </span>
+      </a>
+   </li>
+   {% endif %}
+
+   {% if request.session.role != "Site Admin" %}
+   <li class="{{ dcos }}" id='dcosItem'>
+      <a href="{% url 'managedco_view' %}">
+         <i class="nav-list-icon"></i>
+         <span class="menu-text"> Data Connectors </span>
+      </a>
+   </li>
+   {% endif %}
+
+   {% if request.session.role == "Site Admin" %}
+   <li class="separator"></li>
+   <li class="{{ nodes }}" id='nodesItem'>
+      <a href="{% url 'managepnode_view' %}">
+         <i class="nav-list-icon"></i>
+         <span  class="menu-text"> Physical Nodes </span>
+      </a>
+   </li>
+   <li class="{{ vnodes }}" id='vnodesItem'>
+      <a href="{% url 'managevnode_view' %}">
+         <i class="nav-list-icon"></i>
+         <span  class="menu-text"> Virtual Nodes </span>
+      </a>
+   </li>
+   {% if request.session.bds_global_bundleflavor != "freemium" %}
+   <li class="{{ workers }}" id='installationItem'>
+      <a href="{% url 'manageworker_view' %}">
+         <i class="nav-list-icon"></i>
+         <span  class="menu-text"> Installation </span>
+      </a>
+   </li>
+   {% endif %}
+   {% else %}
+   <li class="{{ vnodes }}" id='vnodesItem'>
+      <a href="{% url 'managevnode_view' %}">
+         <i class="nav-list-icon"></i>
+         <span  class="menu-text"> Virtual Nodes </span>
+      </a>
+   </li>
+   {% endif %}
+
+   {% if request.session.role == "Site Admin" %}
+   <li class="separator"></li>
+   <li class="{{ sosreport }}" id='supportItem'>
+      <a href="{% url 'sosreport_view' %}">
+         <i class="nav-list-icon"></i>
+         <span class="menu-text"> Support </span>
+      </a>
+   </li>
+   <li class="{{ gen_settings }}" id='settingsItem'>
+      <a href="{% url 'gensettings_view' %}">
+         <i class="nav-list-icon"></i>
+         <span class="menu-text"> Settings </span>
+      </a>
+   </li>
+   <li class="{{ configuration }}" id='configurationItem'>
+      <a href="{% url 'configuration_view' %}image-settings">
+         <i class="nav-list-icon"></i>
+         <span class="menu-text"> Configuration </span>
+      </a>
+   </li>
+   {% endif %}
+
+   {% if request.session.role == "Admin" %}
+   <li class="{{ users }}" id='usersItem'>
+      <a href="{% url 'tenantextras_view' %}?tenant_id={{ request.session.tenant_id }}">
+         <i class="nav-list-icon"></i>
+         <span class="menu-text"> Users </span>
+      </a>
+   </li>
+   {% endif %}
+
+</ul><!--/.nav-list-->
+<div class="sidebar-collapse" id="sidebar-collapse">
+   <i class="icon-collapse-sidebar" data-icon1="icon-collapse-sidebar" data-icon2="icon-expand-sidebar"></i>
+</div>
+{% endblock %}

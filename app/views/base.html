@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+{% load url from future %}
+<html lang="en">
+  <head>
+    <meta content='text/html; charset=utf-8' http-equiv='Content-Type' />
+    <title>{{ title }}</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="blac-translucent" />
+    <meta name="description" content="" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    {% block css %}
+       {% include "_stylesheets.html" %}
+    {% endblock %}
+  </head>
+  <body id="dashboard">
+    {% block navbar_content %}
+       <div class="navbar" id="navbar">
+          <script type="text/javascript">
+             try{ace.settings.check('navbar' , 'fixed')}catch(e){}
+          </script>
+
+          <div class="navbar-inner">
+             <div class="container-fluid">
+                <div class='bluedata-logo'></div>
+                <!-- Include Navbar -->
+                {% if installcomplete %}
+                {% block navbar %}
+                   {% include '_navbar.html' %}
+                {% endblock %}
+                {% endif %}
+             </div><!--/container-fluid-->
+          </div><!--/navbar-inner-->
+       </div><!--/navbar-->
+    {% endblock %}
+
+    {% block page_content %}
+       <div class="container-fluid main-container">
+          <a class="menu-toggler" id="menu-toggler" href="#">
+            <span class="menu-text"></span>
+          </a>
+
+          <div class="sidebar bluedata-sidebar" id="sidebar">
+             {% if installcomplete %}
+             {% block sidebar %}
+               {% include '_sidebar.html' %}
+             {% endblock %}
+             {% endif %}
+          </div><!--/#sidebar-->
+
+          <div class="main-content bluedata-main-content">
+             <div class="page-content">
+                <div class="bluedata-page-header position-relative">
+                  {% url "jobextras_view" as job_page %}
+                  {% url "clusterextras_view" as cluster_page %}
+                  {% url "tenantextras_view" as tenant_page %}
+                  {% url "userextras_view" as user_page %}
+                  {% if page_name ==  tenant_page or page_name == cluster_page or page_name == job_page or page_name == user_page %}
+                  <h1> {{ content_descr }} <!-- request.get_full_path {{ content_title }} -->
+                    <!-- <i class="icon-double-angle-right"></i>
+                    <small>{{ content_descr }}</small> -->
+                  </h1>
+                  {% else %}
+                  <h1> {{ content_title }}
+                    <!-- <i class="icon-double-angle-right"></i>
+                    <small>{{ content_descr }}</small> -->
+                  </h1>
+                  {% endif %}
+                </div><!--/page-header-->
+                <div class='bluedata-page-content'>
+                  <div class="row-fluid">
+                     <div class="span12">
+                        {% block main_content %}
+                        {% endblock %}
+                     </div>
+                  </div><!--/row-fluid-->
+                </div>
+             </div><!--/#page-content-->
+            
+             <div id ="id_spinner" style="position:fixed;top:50%;left:50%" class="center"></div>
+
+             <div class="ace-settings-container" id="ace-settings-container" style="visibility:hidden">
+                <div class="btn btn-app btn-mini btn-warning ace-settings-btn" id="ace-settings-btn">
+                   <i class="icon-cog bigger-150"></i>
+                </div>
+                <div class="ace-settings-box" id="ace-settings-box">
+                   <div>
+                      <input type="checkbox" class="ace ace-checkbox-2" id="ace-settings-navbar" />
+                      <label class="lbl" for="ace-settings-navbar"> Fixed Navbar</label>
+                   </div>
+
+                   <div>
+                      <input type="checkbox" class="ace ace-checkbox-2" id="ace-settings-sidebar" />
+                      <label class="lbl" for="ace-settings-sidebar"> Fixed Sidebar</label>
+                   </div>
+
+                   <div>
+                      <input type="checkbox" class="ace ace-checkbox-2" id="ace-settings-breadcrumbs" />
+                      <label class="lbl" for="ace-settings-breadcrumbs"> Fixed Breadcrumbs</label>
+                   </div>
+
+                   <div>
+                      <input type="checkbox" class="ace ace-checkbox-2" id="ace-settings-rtl" />
+                      <label class="lbl" for="ace-settings-rtl"> Right To Left (rtl)</label>
+                   </div>
+                </div>
+             </div>
+          </div><!--/.main-content-->
+       </div><!--/.fluid-container#main-container-->
+       <div id="btn-scroll-up" class="btn-scroll-up bds-footer">
+          Version : {{request.session.bds_global_version}}&nbsp;&nbsp;Build Number : {{request.session.bds_global_buildnumber}}
+       </a>
+       <div id="formModal" class="modal bds-modal hide fade" role="dialog" tabindex="-1">
+       </div>
+    {% endblock %}
+    {% block js %}
+       {% include "_scripts.html" %}
+       {% block page_script %}
+       {% endblock %}
+    {% endblock %}
+    <script id="source" language="javascript" type="text/javascript">
+
+       var internal_locks;
+       var external_locks;
+       var quiesced = false;
+       var role = '{{request.session.role}}';
+
+       function handleLockdown(locks_data) {
+           // Check to see if system is in lockdown in which show that to the user.
+           $('#lockdown-divider').hide();
+           $('#leave-lockdown').hide();
+           $('#enter-lockdown').hide();
+
+           if (locks_data.locked) {
+               var lockdown_message = '';
+               // Save the lock id, which should be in the external_locks list..
+               external_locks = locks_data._embedded.external_locks;
+               internal_locks = locks_data._embedded.internal_locks;
+
+               // FOR DEBUGGING
+//               internal_locks = locks_data._embedded.external_locks;
+
+               quiesced = locks_data.quiesced;
+
+               if (locks_data.quiesced) {
+                   // System is locked. and quiesced
+                   $('#lock-message').removeClass('blinking');
+                   $('#lock-message').show();
+                   lockdown_message ='Site lockdown'; 
+               }
+               else {
+                   // System is being locked. show blinking text
+                   $('#lock-message').addClass('blinking');
+                   lockdown_message = 'Site lockdown in progress'; 
+                   $('#lock-message').show();
+               }
+
+               // For site admin, check to see if unlock menu option can be enabled
+               if (role == "Site Admin") {
+                   $('#leave-lockdown').show();
+                   if (internal_locks.length == 0) {
+                       $('#leave-lockdown').removeClass('opaque');
+                   }
+                   else {
+                       // Still some internal locks,, don't allow leave lockdown
+                       $('#leave-lockdown').addClass('opaque');
+                   }
+               }
+
+               if (internal_locks.length != 0) {
+                   lockdown_message += ': protected tasks active';
+               }
+
+               $('#lock-message').text(lockdown_message);
+           }
+           else {
+               $('#lock-message').hide();
+               // For siteadmin show site lockdown command
+               if (role == "Site Admin") {
+                   $('#enter-lockdown').show();
+               }
+           }
+       }
+
+       $('#lock-message').click(function(ev) {
+           if (external_locks[0].reason != "") {
+               var message = "Site was put in lockdown mode.</br>";
+
+               if (role == "Site Admin") {
+                   message += "User: (<b>" + external_locks[0].source + "</b>)</br>";
+               }
+               message += "Reason: (<b>" + external_locks[0].reason + "</b>)";
+
+               if (!quiesced) {
+                   message += "</br>Waiting on pre-lockdown tasks to complete.";
+               }
+
+               bootbox.alert(message);
+           }
+       });
+
+       $('#leave-lockdown').on('mouseenter',function() {
+           if (internal_locks.length != 0) {
+              setTimeout(function(){
+                  $('#leave-lockdown').popover({
+                      trigger: 'manual',
+                      html: true,
+                      title: '',
+                      placement: 'bottom',
+                      content:
+                          function() {
+                              var message = "Management Service is performing operations that requires site to be in lockdown mode.</br>";
+                              message += "Details.</br>";
+                              message += '<ul>';
+                              for (var i = 0; i < internal_locks.length; i++) {
+                                  message += "<li> (<b>" + internal_locks[i].reason + "</b>)</li>";
+                              }
+                              message += '</ul>';
+                              return message;
+                          }
+                  });
+                  $('#leave-lockdown').popover("show");
+                  $('.popover').on('mouseleave', function() {
+                      $('#leave-lockdown').popover('hide');
+                  });
+              }, 200);
+              return;
+           }
+       });
+
+       $('#leave-lockdown').on('mouseleave', function() {
+           if (internal_locks.length != 0) {
+               setTimeout(function(){$('#leave-lockdown').popover("hide");}, 200);
+           }
+       });
+
+
+       $('#leave-lockdown').click(function(ev) {
+           if (internal_locks.length != 0) {
+               return;
+           }
+           // Do an ajax to do perform unlcok
+           bdStartSpin();
+           var data = {
+               op : 'leave-lockdown',
+               lock_id : external_locks[0]._links.self.href
+           };
+           $.ajax({
+               url: '{% url "lockdown_view" %}',
+               data: JSON.stringify(data),
+               method: 'post',
+               csrfmiddlewaretoken: csrftoken,
+               headers: {'X-CSRFToken' : csrftoken},
+               success: function(result) {
+                   bdStopSpin();
+                   if (result.status_code >= 200 && result.status_code < 207) {
+                       location.reload();
+                   }
+                   else {
+                       var error_msg = getErrorMessage(result.status_code, result.reason);
+                       bootbox.alert(error_msg, function(res) {
+                           if (result.status_code == 408) {
+                               window.location.href = result.redirect;
+                           }
+                           return;
+                       });
+                   }
+               },
+               error: function(result) {
+                   // reload current url
+                   location.reload();
+               }
+           });
+       });
+
+       handleLockdown({{locks_data|safe}});
+
+       function statsHandler(result) 
+       {
+           if(result.role == 'Site Admin') {
+               $('#sessionsInfo.quick-action-item .action-info').html(result.num_sessions);
+               $('#usersInfo.quick-action-item .action-info').html(result.num_users);
+               $('#vnodesInfo.quick-action-item .action-info').html(result.num_vnodes);
+               $('#tenantsInfo.quick-action-item .action-info').html(result.num_tenants);
+               $('#nodesInfo.quick-action-item .action-info').html(result.num_pnodes);
+           }
+           else if(result.role == 'Admin') {
+               $('#usersInfo.quick-action-item .action-info').html(result.num_users);
+               $('#vnodesInfo.quick-action-item .action-info').html(result.num_vnodes);
+               $('#dcoInfo.quick-action-item .action-info').html(result.num_dcos);
+               $('#clustersInfo.quick-action-item .action-info').html(result.num_active_clusters);
+               $('#jobsInfo.quick-action-item .action-info').html(result.num_active_jobs);
+           }
+           else if(result.role == 'Member') {
+               $('#vnodesInfo.quick-action-item .action-info').html(result.num_vnodes);
+               $('#dcoInfo.quick-action-item .action-info').html(result.num_dcos);
+               $('#clustersInfo.quick-action-item .action-info').html(result.num_active_clusters);
+               $('#jobsInfo.quick-action-item .action-info').html(result.num_active_jobs);
+           }
+           else {
+               // Invalid role, no need to do anything
+           }
+           handleLockdown(result.locks_data);
+       }
+
+       var install_view = '{% url "admininstall_view" %}';
+       var license_view = '{% url "license_view" %}';
+       var page_name = '{{page_name}}';
+
+       if (page_name != install_view || page_name != license_view) {
+           bdStartAjaxTimer(5, 'statstimer', statsTimerCallback);
+       }
+
+       function statsTimerCallback() {
+           if (page_name == install_view || page_name == license_view) {
+               bdStartAjaxTimer(30, 'timer', statsTimerCallback);
+               return;
+           }
+           $.ajax({
+               url: '{% url "get_stats" %}',
+               method: 'post',
+               csrfmiddlewaretoken: csrftoken,
+               headers: {'X-CSRFToken' : csrftoken},
+               success: function(result) {
+                   if (result.status_code == 408) {
+                       window.location.href = result.redirect;
+                       return;
+                   }
+                   else {
+                       statsHandler(result);
+                       bdStartAjaxTimer(30, 'timer', statsTimerCallback);
+                   }
+               },
+               error: function(result) {
+                   bdStartAjaxTimer(120, 'timer', statsTimerCallback);
+               }
+           });
+       }
+    </script>
+  </body>
+</html>

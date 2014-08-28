@@ -1,0 +1,631 @@
+{% extends 'base.html' %}
+{% load url from future %}
+{% block main_content %}
+<div class="row-fluid">
+   {% if edit_cluster == "active" %}
+   <form class="bds-form form-horizontal" action='{% url "editcluster_view" %}' id="createcluster" enctype="multipart/form-data" method="POST">{% csrf_token %}
+   {% else %}
+   <form class="bds-form form-horizontal" action='{% url "createcluster_view" %}' id="createcluster" enctype="multipart/form-data" method="POST">{% csrf_token %}
+   {% endif %}
+
+      <div class="control-group">
+         <label class="control-label">Cluster Name <i class='icon-question-sign' id='cluster_name_info' data-rel='tooltip' data-placement='top'></i></label>
+         <div class="controls">
+            <input type="text" name="name" id="name" >
+         </div>
+      </div>
+
+      <div class="control-group">
+         <label class="control-label">Select Cluster Type <i class='icon-question-sign' id='cluster_type_info' data-rel='tooltip' data-placement='top'></i></label>
+         <div class="controls">
+            <select name="cluster_type" id="cluster_type">
+               {% for cluster in cluster_types %}
+                  <option value='{{ cluster.0 }}' >{{ cluster.1 }}</option>
+               {% endfor %}
+            </select>
+         </div>
+      </div>
+
+      <div class="control-group">
+         <label class="control-label">
+            Cluster FS Path <i class='icon-question-sign' id='default_fs_path_info' data-rel='tooltip' data-placement='top'></i></br>
+            <small class="text-warning"> Optional </small>
+         </label>
+         <div class="controls">
+            <input id="default_fs" name="default_fs" type="text"></input>
+            <div class="input-append">
+               <span class="btn btn-small dco_browse" id="dco_browse_rootpath"> Insert </span>
+            </div>
+         </div>
+      </div>
+
+      <div class="control-group">
+         <label class="control-label">Distribution <i class='icon-question-sign' id='distribution_info' data-rel='tooltip' data-placement='top'></i></label>
+         <div class="controls">
+            <select name="distro" id="distro">
+            </select>
+         </div>
+      </div>
+
+     <div class='control-group' id="mr-job-choice">
+        <label class="control-label">MR Type <i class='icon-question-sign' id='mr_type_info' data-rel='tooltip' data-placement='top'></i></label>
+        <div class="controls">
+           <select name="mr_type_choices" id="mr_type_choices">
+              {% for type in mr_types %}
+               <option name='{{ type.0 }}' value='{{ type.1 }}'>{{ type.1 }}</option>
+              {% endfor %}
+           </select>
+        </div>
+     </div>
+
+      <div class="control-group">
+         <label class="control-label">Master Node Flavor <i class='icon-question-sign' id='master_flavor_info' data-rel='tooltip' data-placement='top'></i></label>
+         <div class="controls">
+            <select name="master_flavor" id="master_flavor" class='input-xlarge'>
+               {% for flavor in master_flavor_types %}
+               <option name="master_flavor" value='{{ flavor.0 }}'>{{ flavor.1 }}</option>
+               {% endfor %}
+            </select>
+         </div>
+      </div>
+
+      <div class="control-group">
+         <label class="control-label">Slave Count <i class='icon-question-sign' id='slave_count_info' data-rel='tooltip' data-placement='top'></i></label>
+         <div class="controls" id="slave-count-control">
+            <input type="text" name="worker_count" class="worker_count" id="worker_count" />
+         </div>
+      </div>
+
+      <div class="control-group" id='slaveNodeFlavor'>
+         <label class="control-label">Slave Node Flavor <i class='icon-question-sign' id='slave_flavor_info' data-rel='tooltip' data-placement='top'></i></label>
+         <div class="controls">
+            <select name="slave_flavor" id="slave_flavor" class='input-xlarge'>
+               {% for flavor in slave_flavor_types %}
+               <option name="slave_flavor" value='{{ flavor.0 }}'>{{ flavor.1 }}</option>
+               {% endfor %}
+            </select>
+         </div>
+      </div>
+
+      <div class="control-group" id="ha_enabled_block" style="display:none;">
+         <label class="control-label"> High Availability <i class='icon-question-sign' id='high_availability_info' data-rel='tooltip' data-placement='top'></i></label>
+         <div class="controls">
+            <label>
+               <input name="ha_enabled" id="ha_enabled" type="checkbox" class="ace ace-checkbox-2" disabled='true'/>
+               <span class="lbl"></span>
+            </label>
+         </div>
+      </div>
+
+      <div class="control-group" id="apps_installed_block">
+         <label class="control-label" id="apps_install_label"><span>Pig, Hive, Hue &amp; Impala </span><i class='icon-question-sign' id='app_install_info' data-rel='tooltip' data-placement='top'></i></label>
+         <div class="controls">
+            <label>
+               <input name="apps_installed" id="apps_installed" type="checkbox" class="ace ace-checkbox-2" />
+               <span class="lbl"></span>
+            </label>
+         </div>
+      </div>
+
+      <div class="control-group" id="spark_installed_block">
+         <label class="control-label" id="spark_install_label"><span>Spark</span><i class='icon-question-sign' id='spark_install_info' data-rel='tooltip' data-placement='top'></i></label>
+         <div class="controls">
+            <label>
+               <input name="spark_installed" id="spark_installed" type="checkbox" class="ace ace-checkbox-2" />
+               <span class="lbl"></span>
+            </label>
+         </div>
+      </div>
+
+      {% include 'hadoop_config.html' %}
+
+      <input type="text" name="type_choice" id="type_choice" style="visibility:hidden"/>
+
+      <input type="text" name="uuid" id="uuid" style="visibility:hidden"/>
+
+      <input type="text" name="cluster_type_choice" id="cluster_type_choice" style="visibility:hidden"/>
+
+      <div class="form-actions">
+         <button type="button" id="form-submit" class="pull-left btn btn-primary" type="submit"><i class="icon-ok"></i> Submit</button>
+      </div>
+   </form>
+</div>
+{% endblock %}
+
+{% block page_script %}
+<script id="source" language="javascript" type="text/javascript">
+  
+   var distro_categories = {{distro_categories|safe}};
+   var hadoop_config = new hadoop_config_params();
+   var max_worker_count = {{max_worker_count}};
+   
+   $('#name').focus();
+
+   $(document).ready(function () {
+       var all_apps_option = 'Pig, Hive, Impala & Hue';
+       var pig_hive_hue_option = 'Pig, Hive & Hue';
+       var pig_hive_option = 'Pig & Hive';
+       var spark_install_option = 'Spark';
+
+       var dco_list = {{dco_list|safe}}, dco_browse_type = 'dco_browse_rootpath';
+
+       var edit_cluster = '{{edit_cluster|safe}}';
+       var cluster_data = {{cluster_data|safe}};
+
+       // Check if job_data is present, in which populate all the fields.
+       if (cluster_data.length) {
+
+           cluster_data = cluster_data[0];
+
+           if (edit_cluster == "active") {
+               $('#name').val(cluster_data.cluster_name);
+               $('#uuid').val(cluster_data.uuid);
+               $('#cluster_type_choice').val(cluster_data.cluster_type);
+           }
+           else {
+               // Choose a default name for cluster, We try upto 1000 
+               // if can't find a unique name, then just give up
+               // and show the original name, so user has to change the name
+               // before submitting (since submit will fail)
+               var cluster_list = {{cluster_list|safe}};
+               var pick_name = cluster_data.cluster_name + "_1";
+               for (var i = 1; i <= 1000; i++) {
+                   pick_name = cluster_data.cluster_name + "_" + i.toString();
+                   for (var j = 0; j < cluster_list.length; j++) {
+                       if (cluster_list[j].cluster_name == pick_name) {
+                           break;
+                       }
+                   }
+                   if (j == cluster_list.length) {
+                       break;
+                   }
+               }
+
+               if (i <= 1000) {
+                   $('#name').val(pick_name);
+               }
+               else {
+                   $('#name').val(cluster_data.cluster_name);
+               }
+           }
+
+           $('#cluster_type').val(cluster_data.cluster_type);
+
+           handleClusterTypeChange(cluster_data.cluster_type);
+           if (edit_cluster == "active") {
+               $('#cluster_type').attr('disabled', true);
+           }
+
+           $('#distro').val(cluster_data.hadoop_distro);
+           handleDistroChange(cluster_data.hadoop_distro);
+           if (edit_cluster == "active") {
+               $('#distro').attr('disabled', true);
+           }
+
+           $('#mr_type_choices').val(cluster_data.mr_type);
+           if (edit_cluster == "active") {
+               $('#mr_type_choices').attr('disabled', true);
+           }
+
+           $('#default_fs').val(cluster_data.default_fs);
+           if (edit_cluster == "active") {
+               $('#default_fs').attr('disabled', true);
+               $('#dco_browse_rootpath').hide();
+           }
+
+           // For edit, we can only expand, not shrink, for clone it can be changed
+           var dom = $('#worker_count');
+           $('#worker_count').closest('.ace-spinner').remove();
+           $('#slave-count-control').html(dom);
+           switch (cluster_data.cluster_type) {
+               case 'Hadoop':
+                   if (edit_cluster == "active") {
+                       $('#worker_count').ace_spinner({value:cluster_data.slave_count,min:cluster_data.slave_count,max:max_worker_count,step:1, btn_up_class:'btn-info', btn_down_class:'btn-info'});
+                   }
+                   else {
+                       $('#worker_count').ace_spinner({value:cluster_data.slave_count,min:0,max:max_worker_count,step:1, btn_up_class:'btn-info', btn_down_class:'btn-info'});
+                   }
+                   break;
+               case 'HBase':
+                   if (edit_cluster == "active") {
+                       $('#worker_count').ace_spinner({value:cluster_data.slave_count,min:cluster_data.slave_count,max:max_worker_count,step:1, btn_up_class:'btn-info', btn_down_class:'btn-info'});
+                   }
+                   else {
+                       $('#worker_count').ace_spinner({value:cluster_data.slave_count,min:2,max:max_worker_count,step:1, btn_up_class:'btn-info', btn_down_class:'btn-info'});
+                   }
+                   break;
+               case 'Spark':
+                   if (edit_cluster == "active") {
+                       $('#worker_count').ace_spinner({value:cluster_data.slave_count,min:cluster_data.slave_count,max:max_worker_count,step:1, btn_up_class:'btn-info', btn_down_class:'btn-info'});
+                   }
+                   else {
+                       $('#worker_count').ace_spinner({value:cluster_data.slave_count,min:0,max:max_worker_count,step:1, btn_up_class:'btn-info', btn_down_class:'btn-info'});
+                   }
+                   break;
+           }
+
+           // Disable expand in this case
+           if (edit_cluster == "active" && cluster_data.status != 'ready') {
+              $('#worker_count').attr('disabled', true);
+           }
+           
+           /// XXX When we support for HA for VClusters, test this block
+           if (cluster_data.ha_enabled) {
+               document.getElementById("ha_enabled").disabled = true;
+           }
+           else {
+               document.getElementById("ha_enabled").disabled = true;
+
+           }
+
+           // Flavors are tricky, what is reported is just the first word,
+           // such as medium, small etc.. so walk through the list and set
+           // the one as selected
+           $("#master_flavor > option").each(function() {
+               if (this.text.indexOf(cluster_data.master_flavor) == 0) {
+                   $(this).prop('selected', 'selected');
+               }
+           });
+
+           if (edit_cluster == "active") {
+               $('#master_flavor').attr('disabled', true);
+           }
+
+           $("#slave_flavor > option").each(function() {
+               if (this.text.indexOf(cluster_data.slave_flavor) == 0) {
+                   $(this).prop('selected', 'selected');
+               }
+           });
+           
+           if (edit_cluster == "active") {
+               $('#slave_flavor').attr('disabled', true);
+           }
+
+           if (cluster_data.apps_installed) {
+               // Set apps_installed to be checked
+               $('#apps_installed').prop("checked", true);
+           }
+
+           if (edit_cluster == "active") {
+               $('#apps_installed').attr('disabled', true);
+           }
+
+           hadoop_config.initialize(distro_categories, $('#distro').val(), $('#mr_type_choices').val(), $('#apps_installed').is(':checked'), false);
+           // If there were some cluster specific hadoop configuration, override the defaults with those values
+           if (cluster_data.config_nondefaults) {
+               hadoop_config.override_defaults(cluster_data.config_nondefaults);
+               hadoop_config.check_and_show_adv_settings(distro_categories, $('#distro').val(), $('#mr_type_choices').val(),
+                   $('#apps_installed').is(':checked'));
+           }
+       }
+       else {
+           // Set initial value for cluster_type and distros
+           $('#cluster_type').val("Hadoop");
+
+           $('#worker_count').ace_spinner({value:0,min:0,max:max_worker_count,step:1, btn_up_class:'btn-info', btn_down_class:'btn-info'});
+           populateDistro('Hadoop');
+           hadoop_config.initialize(distro_categories, $('#distro').val(), $('#mr_type_choices').val(), $('#apps_installed').is(':checked'), false);
+       }
+
+       function populateDistro(cluster_type) {
+           var distros = {{distros|safe}};
+           var hadoop_distros = distros['hadoop_distros'];
+           var hbase_distros = distros['hbase_distros'];
+           var spark_distros = distros['spark_distros'];
+
+           $('#spark_installed_block').hide();
+           document.getElementById("distro").options.length = 0;
+           var options = '';
+           switch (cluster_type) {
+               case 'Hadoop':
+                   for (var i = 0; i < hadoop_distros.length; i++) {
+                       options += '<option name="distro" value="' + hadoop_distros[i][0] + '" ';
+                       options += '>'+hadoop_distros[i][1]+'</option>';
+                   }
+                   break;
+               case 'HBase':
+                   for (var i = 0; i < hbase_distros.length; i++) {
+                       options += '<option name="distro" value="' + hbase_distros[i][0] + '" ';
+                       options += '>'+hbase_distros[i][1]+'</option>';
+                   }
+                   break;
+               case 'Spark':
+                   for (var i = 0; i < spark_distros.length; i++) {
+                       options += '<option name="distro" value="' + spark_distros[i][0] + '" ';
+                       options += '>'+spark_distros[i][1]+'</option>';
+                   }
+                   break;
+           }
+           $('#distro').append(options);
+           if($("#distro option:selected").val() == 'Cloudera CDH 5.0') {
+               $('#spark_installed_block').show();
+               $('#spark_install_label span').text(spark_install_option);
+           }
+       }
+
+       function handleClusterTypeChange(value) {
+           populateDistro(value);
+           var dom = $('#worker_count');
+           $('#worker_count').closest('.ace-spinner').remove();
+           $('#slave-count-control').html(dom);
+           switch(value) {
+               case 'Hadoop' :
+                   //reset MR Type to default value, its already enabled so no need for enabling
+                   $('#mr-job-choice').show();
+                   $('#mr_type_choices').val('MRv1');
+                   //reset the slave count to 0 as default value
+                   $('#worker_count').ace_spinner({value:0,min:0,max:max_worker_count,step:1, btn_up_class:'btn-info', btn_down_class:'btn-info'});
+                   //disable the High Availability as Worker Count is 0
+                   $('#ha_enabled').attr('disabled', true);
+                   //hide the root data path for selection
+                   $('#browse_file_widget').hide();
+                   //show the Impala string
+                   $('#apps_installed_block').show();
+                   $('#apps_install_label span').text(all_apps_option);
+                   break;
+
+               case 'HBase'  :
+                   //reset MR type to default value 
+                   $('#mr-job-choice').show();
+                   $('#mr_type_choices').attr('disabled', false).val('MRv1');
+                   //set the slave count to 2 (or make no. of nodes = 3 i.e. 1 master plus 2 workers) as default value
+                   $('#worker_count').ace_spinner({value:2,min:2,max:max_worker_count,step:1, btn_up_class:'btn-info', btn_down_class:'btn-info'});
+                   $('#ha_enabled').attr('disabled', false);
+                   //show the Impala string
+                   $('#apps_installed_block').show();
+                   $('#apps_install_label span').text(all_apps_option);
+                   break;
+
+               case 'Spark' :
+                   $('#mr-job-choice').hide();
+                   $('#apps_installed_block').hide();
+                   // Load distro from spark_distro list
+                   //reset the slave count to 0 as default value
+                   $('#worker_count').ace_spinner({value:0,min:0,max:max_worker_count,step:1, btn_up_class:'btn-info', btn_down_class:'btn-info'});
+                   $('#ha_enabled').attr('disabled', false);
+                   break;
+           }
+           hadoop_config.check_and_show_adv_settings(distro_categories, $('#distro').val(), $('#mr_type_choices').val());
+       }
+
+    
+       //handle with change of cluster type
+       $('#cluster_type').change(function(){
+           //switch case for different cluster types
+           if (!show_popover) {
+               // Already a popover is being shown. so hide that first
+               $('#' + dco_browse_type).popover("hide");
+               show_popover = true;
+           }
+
+           handleClusterTypeChange($(this).val());
+           
+       });
+
+       function handleDistroChange(value) {
+           $('#spark_installed_block').hide();
+           // Hide the category tabs, it will be different based on the distro.
+           if ($('#cluster_type').val() != "Spark") {
+               var val = $("#distro option:selected").val();
+               var count = $('#worker_count').val();
+               if (val.indexOf("Cloudera") == -1) {
+                   document.getElementById("ha_enabled").disabled = true;
+                   //set the value of MR type based on selection of Hadoop Distribution
+                   if(val == 'Hortonworks HDP 1.3') {
+                       $('#mr_type_choices').val('MRv1').attr('disabled', true);
+                       $('#type_choice').val('MRv1');
+                   } 
+                   else if(val == 'Hortonworks HDP 2.0') {
+                       $('#mr_type_choices').val('YARN').attr('disabled', true);
+                       $('#type_choice').val('YARN');
+                   }
+                   else if(val == 'Intel IDH 3.0.2') {
+                       $('#mr_type_choices').val('YARN').attr('disabled', true);
+                       $('#type_choice').val('YARN');
+                   }
+                   //hide the Impala option in case of hadoop distribution other than Cloudera
+
+                   if (val.indexOf("Intel") == -1) {
+                       $('#apps_install_label span').text(pig_hive_hue_option);
+                   }
+                   else {
+                       $('#apps_install_label span').text(pig_hive_option);
+                   }
+               }
+               else {
+                   /* If distribution is cloudera and count is greater than 1, then show high availability */
+                   if (count > 1) {
+                       document.getElementById("ha_enabled").disabled = false;
+                   }
+                   //enable the MR type with setting the default value
+
+                   $('#mr_type_choices').attr('disabled', false).val('MRv1');
+                   //show the Impala option in case of Cloudera hadoop distribution
+                   $('#apps_install_label span').text(all_apps_option);
+                   if(val == 'Cloudera CDH 5.0') {
+                       $('#spark_installed_block').show();
+                       $('#spark_install_label span').text(spark_install_option);
+                   }
+               }
+           }
+           
+       }
+
+       $("#distro").change(function () {
+           handleDistroChange($(this).val());
+           hadoop_config.check_and_show_adv_settings(distro_categories, $('#distro').val(),  $('#mr_type_choices').val());
+       });
+
+       $("#mr_type_choices").change(function () {
+           hadoop_config.check_and_show_adv_settings(distro_categories, $('#distro').val(),  $('#mr_type_choices').val());
+       });
+
+       $('#worker_count').on('change', function(){
+           if (this.value > max_worker_count) {
+               this.value = max_worker_count;
+           }
+
+           var val = $("#distro option:selected").val();
+           var count = this.value;
+
+           if ($('#cluster_type').val() == 'HBase' &&  count < 2) {
+               this.value = 2;
+           }
+
+           if (val.indexOf("Cloudera") != -1 && count > 1) {
+               document.getElementById("ha_enabled").disabled = false;
+           }
+           else {
+               document.getElementById("ha_enabled").disabled = true;
+           }
+       });
+
+       $.validator.addMethod("validName", function(value, element) {
+           if (edit_cluster == "active") {
+               // For edit, same name is ok...
+               if (cluster_data.cluster_name == value) {
+                   return true;
+               }
+           }
+
+           var cluster_list = {{cluster_list|safe}};
+           for (i = 0; i < cluster_list.length; i++) {
+               if (cluster_list[i].cluster_name == value) {
+                   return false;
+               }
+           }
+           return true;
+       }, "Cluser name exists. Please specify a different one");
+
+
+      function reInitializePopover() {
+          $('#' + dco_browse_type).popover({
+              trigger: 'manual',
+              callback: dcoPopoverCallback,
+              animation: true,
+              html: true,
+              title: 'Data Connector Browser&nbsp&nbsp&nbsp&nbsp&nbsp<button id="popoverclose" type="button" class="close">    &times;</button>',
+              placement: 'right',
+              content:
+                  function() {
+                      id = 'tree-'+dco_browse_type;
+                      return '<div id='+id+'></div>';
+                  }
+          }).data('popover').tip().addClass('dco-popover');
+
+          $('#' + dco_browse_type).popover("show");
+
+          $('#popoverclose').on('click', function(){
+              $('#' + dco_browse_type).popover("hide");
+               show_popover = true;
+          });
+
+          var options = {id : '#tree-'+dco_browse_type,
+                         allow_file : false,
+                         list : dco_list,
+                         src : 'dco',
+                         url : '{% url "managedco_view" %}',
+                         activateCallback : treeActivateCallback};
+
+          createDynaTree(options);
+      }
+
+      $(window).resize(function() {
+          if (!show_popover) {
+              reInitializePopover();
+          }
+      });
+
+      var show_popover = true;
+      //handle the click to insert root data path
+      $('.dco_browse').click(function() {
+           if (!show_popover) {
+               $('#' + dco_browse_type).popover("hide");
+               show_popover = true;
+               return;
+           }
+
+           // Toggle for next clicke
+           show_popover = false;
+
+           reInitializePopover();
+       });
+    
+       function treeActivateCallback(bdfsPath) {
+           $('#default_fs').val(bdfsPath);
+       }
+
+       $('#createcluster').validate({
+           onclick: false,
+
+           errorElement: 'span',
+           errorClass: 'help-inline',
+           focusInvalid: false,
+           rules: {
+               name: {
+                   required: true,
+                   minlength: 1,
+                   maxlength: 32,
+                   validName: true
+               },
+               cluster_type: 'required',
+               distro: 'required',
+               master_flavor: 'required',
+               slave_flavor: 'required',
+               worker_count: 'required',
+           },
+
+           messages: {
+               name: {
+                   required: "Please provide a valid cluster name.",
+                   minlength: $.format("Cluster name must be atleast {0} characters"),
+                   maxlength: $.format("Cluster name must not exceed {0} characters")
+               },
+               cluster_type:  "Please select the cluster type.",
+               distro:  "Please select Distribution.",
+               master_flavor: "Please provide Master Flavor",
+               slave_flavor: "Please provide Slave Flavor",
+               worker_count: "Please enter valid Slave count",
+           },
+
+           invalidHandler:  function (event, validator) { //display error alert on form submit
+               $('.alert-error', $('.login-form')).show();
+           },
+
+           highlight: function (e) {
+               $(e).closest('.control-group').removeClass('info').addClass('error');
+           },
+
+           success: function (e) {
+               $(e).closest('.control-group').removeClass('error').addClass('info');
+               $(e).remove();
+           },
+             
+           errorPlacement: function (error, element) {
+               bdStopSpin();
+               if(element.is(':checkbox') || element.is(':radio')) {
+                   var controls = element.closest('.controls');
+                   if(controls.find(':checkbox,:radio').length > 1) controls.append(error);
+                   else error.insertAfter(element.nextAll('.lbl').eq(0));
+               } 
+               else if (element.is('#default_fs') || element.is('#worker_count')) {
+                   element.next().after(error);
+               }
+               else error.insertAfter(element);
+           },
+
+           submitHandler: function (form) {
+              hadoop_config.disable_default_params(form);
+              if (edit_cluster == "active") {
+                  bdsFormSubmit(form, "Failed to edit cluster", '{% url "managecluster_view" %}');
+              }
+              else {
+                  bdsFormSubmit(form, "Failed to create cluster", '{% url "managecluster_view" %}');
+              }
+           },
+       });
+   });
+
+</script>
+{% endblock %}
+

@@ -1,0 +1,1414 @@
+{% extends 'base.html' %}
+{% load url from future %}
+{% block main_content %}
+<div class="span12">
+   {% if edit_job == "active" %}
+   <form class="bds-form form-horizontal" id="createjob" enctype="multipart/form-data" action='{% url "editjob_view" %}' method="POST">{% csrf_token %}
+   {% else %}
+   <form class="bds-form form-horizontal" id="createjob" enctype="multipart/form-data" action='{% url "createjob_view" %}' method="POST">{% csrf_token %}
+   {% endif %}
+      <div class="control-group">
+         <label class="control-label">Job Name <i class='icon-question-sign' id='job_name_info' data-rel='tooltip' data-placement='top'></i></label>
+         <div class="input controls">
+            <input type="text" name="name" id="name">
+         </div>
+      </div>
+
+      <div class="control-group">
+         <label class="control-label">Job Type <i class='icon-question-sign' id='job_type_info' data-rel='tooltip' data-placement='top'></i></label>
+         <div class="controls">
+            <select name="job_type" id="job_type" class="command-line">
+               {% for type in job_types %}
+               <option name='{{ type.0 }}' value='{{ type.1 }}'>{{ type.1 }}</option>
+               {% endfor %}
+            </select>
+         </div>
+      </div>
+
+      <div class="customjar-jobtype-form">
+         <div class="control-group">
+            <div class="span8">
+               <label class="control-label" id="jar-file-label" >Jar File <i class='icon-question-sign' id='jar_file_info' data-rel='tooltip' data-placement='top'></i></label>
+               <div class="controls">
+                  <input type="file" name="jar_file_data" id="jar_file_data" class="command-line" />
+               </div>
+            </div>
+         </div>        
+      </div>
+
+      <div class="streaming-jobtype-form" style="display:none;">
+         <div class="control-group">
+            <div class="span8">
+               <label class="control-label">Mapper Script <i class='icon-question-sign' id='mapper_script_info' data-rel='tooltip' data-placement='top'></i></label>
+               <div class="controls">
+                  <input type="file" name="mapper_file_data" id="mapper_file_data" class="command-line" />
+               </div>
+               <label class="control-label">Reducer Script <i class='icon-question-sign' id='reducer_script_info' data-rel='tooltip' data-placement='top'></i></label>
+               <div class="controls">
+                  <input type="file" name="reducer_file_data" id="reducer_file_data" class="command-line" />
+               </div>
+            </div>
+         </div>
+     </div>
+
+     <div class='customjar-jobtype-form' id="app-name-class">
+        <div class="control-group">
+           <label class="control-label">App Name <i class='icon-question-sign' id='app_name_info' data-rel='tooltip' data-placement='top'></i></label>
+           <div class="controls">
+              <input type="text" name="app_name" id="app_name" class="command-line" />
+           </div>
+        </div>
+     </div>
+
+     <div class='hiveorpig-jobtype-form' style="display:none;">
+        <div class="control-group">
+           <div class="span8">
+              <label class="control-label">Script Path <i class='icon-question-sign' id='script_path_info' data-rel='tooltip' data-placement='top'></i></label>
+              <div class="controls">
+                 <input type="file" name="script_file_data" id="script_file_data" class="command-line" />
+              </div>
+           </div>
+        </div>
+     </div>
+
+     <div class="control-group">
+        <label class="control-label">Cluster Type <i class='icon-question-sign' id='cluster_type_info' data-rel='tooltip' data-placement='top'></i></label>
+        <div class="controls" id="cluster_type" name="cluster_type">
+           <label class="blue"><input type="radio" name="Transient" id="Transient" checked="checked"/>
+              <span class="lbl"> Transient</span>
+           </label>
+           <label class="blue">
+              <input type="radio" name="Persistent" id="Persistent"/>
+              <span id="persistent_id" class="lbl"> Persistent</span>
+           </label>
+        </div>
+     </div>
+
+     <div class="control-group" id="default-fs-choice">
+         <label class="control-label">
+            Cluster FS Path <i class='icon-question-sign' id='default_fs_path_info' data-rel='tooltip' data-placement='top'></i></br>
+            <small class="text-warning"> Optional </small>
+         </label>
+         <div class="controls">
+            <input type="text" name="default_fs" id="default_fs"/>
+            <div class="input-append">
+               <span class="btn btn-small dco_browse" id="dco_browse_defaultfs">
+                  <i class="icon-hdd">Insert</i>
+               </span>
+            </div>
+         </div>
+     </div>
+
+     <div class="control-group">
+        <label class="control-label" for="drop_down_label" id="drop_down_label"><span>Hadoop Distribution</span><i class='icon-question-sign' id='distribution_info' data-rel='tooltip' data-placement='top'></i></label>
+        <div class="controls">
+           <select name="drop_down_choices" id="drop_down_choices">
+              {% for distro in distros %}
+              <option name='{{ distro.0 }}' value='{{ distro.1 }}'></option>
+              {% endfor %}
+           </select>
+        </div>
+     </div>
+
+     <div class='control-group transient-job-type' id="mr-job-choice">
+        <label class="control-label">MR Type <i class='icon-question-sign' id='mr_type_info' data-rel='tooltip' data-placement='top'></i></label>
+        <div class="controls">
+           <select name="mr_type_choices" id="mr_type_choices">
+              {% for type in mr_types %}
+               <option name='{{ type.0 }}' value='{{ type.1 }}'>{{ type.1 }}</option>
+              {% endfor %}
+           </select>
+        </div>
+     </div>
+
+     <div class="control-group" id="master-flavor">
+        <label class="control-label">Master Node Flavor <i class='icon-question-sign' id='master_flavor_info' data-rel='tooltip' data-placement='top'></i></label>
+        <div class="controls">
+           <select name="master_flavor" id="master_flavor" class='input-xlarge'>
+              {% for flavor in master_flavor_types %}
+               <option name="master_flavor" value='{{ flavor.0 }}'>{{ flavor.1 }}</option>
+              {% endfor %}
+           </select>
+        </div>
+     </div>
+
+     <div class="control-group" id="slave-count">
+        <label class="control-label">Slave Count <i class='icon-question-sign' id='slave_count_info' data-rel='tooltip' data-placement='top'></i></label>
+        <div class="controls" id="slave-count-control">
+            <input type="text" name="slave_count" class="slave_count" id="slave_count" />
+        </div>
+     </div>
+
+     <div class="control-group" id="slave-flavor">
+        <label class="control-label">Slave Node Flavor <i class='icon-question-sign' id='slave_flavor_info' data-rel='tooltip' data-placement='top'></i></label>
+        <div class="controls">
+           <select name="slave_flavor" id="slave_flavor" class='input-xlarge'>
+              {% for flavor in slave_flavor_types %}
+               <option name="slave_flavor" value='{{ flavor.0 }}'>{{ flavor.1 }}</option>
+              {% endfor %}
+           </select>
+        </div>
+     </div>
+
+     <div class='customjar-jobtype-form'>
+        <div class="control-group">
+           <label class="control-label">Edit Arguments <i class='icon-question-sign' id='edit_arguments_info' data-rel='tooltip' data-placement='top'></i></label>
+           <div class="controls">
+              <textarea id="jar_arguments" name="jar_arguments" class="autosize-transition span6 command-line"></textarea>
+              <div class="input-append">
+                 <span class="btn btn-small dco_browse" id="dco_browse_jar">
+                    <i class="icon-hdd">Insert</i>
+                 </span>
+              </div>
+           </div>
+        </div>
+     </div>
+
+     <div class='streaming-jobtype-form' style="display:none;">
+        <div class="control-group">
+           <label class="control-label">Input Path <i class='icon-question-sign' id='input_path_info' data-rel='tooltip' data-placement='top'></i></label>
+           <div class="controls">
+              <input type="text" name="stream_arguments" id="stream_arguments"  class="command-line"/>
+              <div class="input-append">
+                 <span class="btn btn-small dco_browse" id="dco_browse_input">
+                    <i class="icon-hdd">Insert</i>
+                 </span>
+              </div>
+           </div>
+        </div>
+
+        <div class="control-group">
+           <label class="control-label">Output Path <i class='icon-question-sign' id='output_path_info' data-rel='tooltip' data-placement='top'></i></label>
+           <div class="controls">
+              <input type="text" name="output_path" id="output_path"  class="command-line"/>
+              <div class="input-append">
+                 <span class="btn btn-small dco_browse" id="dco_browse_output">
+                    <i class="icon-hdd">Insert</i>
+                 </span>
+              </div>
+           </div>
+        </div>
+     </div>
+
+     <div class='customjar-jobtype-form streaming-jobtype-form'>
+        <div class="control-group">
+            <label class="control-label">
+               Command Line <i class='icon-question-sign' id='command_line_info' data-rel='tooltip' data-placement='top'></i></br>
+               <small class="text-warning"> (read only) </small>
+            </label>
+            <div class="controls">
+                <pre class="prettyprint" id="show_command">hadoop jar</pre>
+            </div>
+        </div>
+     </div>
+
+     {% include 'hadoop_config.html' %}
+
+     <div class="form-actions">
+         <button type="button" id="form-submit" class="pull-left btn btn-primary" type="submit"><i class="icon-ok"></i> Submit</button>
+     </div>
+
+     <input type="text" name="uuid" id="uuid" style="visibility:hidden"/>
+     <input type="text" name="command_line"  id="command_line" style="visibility:hidden"/>
+
+     <input type="text" name="src_job_uuid"  id="src_job_uuid" style="visibility:hidden" value=""/>
+     <input type="text" name="new_jar_file"  id="new_jar_file" style="visibility:hidden" value="Yes"/>
+     <input type="text" name="new_mapper_file"  id="new_mapper_file" style="visibility:hidden" value="Yes"/>
+     <input type="text" name="new_reducer_file" id="new_reducer_file" style="visibility:hidden" value="Yes"/>
+     <input type="text" name="new_script_file" id="new_script_file" style="visibility:hidden" value="Yes"/>
+   </form>
+</div>
+
+{% endblock %}
+{% block page_script %}
+<script id="source" language="javascript" type="text/javascript">
+   var distro_categories = {{distro_categories|safe}};
+   var hadoop_config = new hadoop_config_params();
+   var max_slave_count = {{max_worker_count}};
+   
+   $(document).ready(function () {
+      $('#drop_down_choices').change(function() {
+           if ($('#Transient').is(':checked')) {
+               $('#mr-job-choice').prop("selectedIndex", 0);
+               $('#slave-count').show();
+               $('#master-flavor').show();
+               $('#slave-flavor').show();
+               var val = $(this).val();
+               if (val.indexOf("Cloudera") == -1) {
+                   $('#mr-job-choice').hide();
+               }
+               else {
+                   $('#mr-job-choice').show();
+               }
+               // Get the mr_type_choice based on distro here..
+               var  mr_type_choice = "MRv1";
+               if (val == 'Hortonworks HDP 2.0') {
+                   mr_type_choice = "YARN";
+               }
+               else if(val == 'Intel IDH 3.0.2') {
+                   mr_type_choice = "YARN";
+               }
+
+               hadoop_config.check_and_show_adv_settings(distro_categories, $('#drop_down_choices').val(), mr_type_choice);
+           }
+           else {
+               $('#mr-job-choice').hide();
+               $('#slave-count').hide();
+               $('#master-flavor').hide();
+               $('#slave-flavor').hide();
+               $('#' + dco_browse_type).popover("hide");
+               show_popover = true;
+           }
+      });
+
+       $("#mr_type_choices").change(function () {
+           hadoop_config.check_and_show_adv_settings(distro_categories, $('#drop_down_choices').val(),  $('#mr_type_choices').val());
+       });
+
+      var dco_browse_type = '';
+      var dco_list = {{dco_list|safe}};
+      var isPopoverActive = false;
+
+      var clusters = {{clusters|safe}};
+      var distros = {{distros|safe}};
+      var hadoop_distros = distros['hadoop_distros'];
+      var hbase_distros = distros['hbase_distros'];
+      var spark_distros = distros['spark_distros'];
+
+      var edit_job = '{{edit_job|safe}}';
+      var job_data = {{job_data|safe}};
+      if (job_data.length) {
+          // Clone job path
+          job_data = job_data[0];
+
+          $('#src_job_uuid').val(job_data.uuid);
+
+          $('#new_jar_file').val("No");
+          $('#new_mapper_file').val("No");
+          $('#new_reducer_file').val("No");
+          $('#new_script_file').val("No");
+
+          if (edit_job == "active") {
+              $('#name').val(job_data.job_name);
+              $('#uuid').val(job_data.uuid);
+          }
+          else {
+              // Choose a default name for job, We try upto 1000 
+              // if can't find a unique name, then just give up
+              // and show the original name, so user has to change the name
+              // before submitting (since submit will fail)
+              var job_list = {{job_list|safe}};
+              var pick_name = job_data.job_name + "_1";
+              for (var i = 1; i <= 1000; i++) {
+                  pick_name = job_data.job_name + "_" + i.toString();
+                  for (var j = 0; j < job_list.length; j++) {
+                      if (job_list[j].job_name == pick_name) {
+                          break;
+                      }
+                  }
+                  // If we get an unused name, exit now.
+                  if (j == job_list.length) {
+                      break;
+                  }
+              }
+
+              if (i <= 1000) {
+                  $('#name').val(pick_name);
+              }
+              else {
+                  $('#name').val(job_data.job_name);
+              }
+          }
+
+          var job_type = job_data.job_type;
+
+          $('#job_type').val(job_type);
+          if (edit_job == "active") {
+              $('#job_type').attr('disabled', true);
+          }
+
+          handleJobTypeChange(job_type);
+
+          var dom = $('#slave_count');
+          $('#slave_count').closest('.ace-spinner').remove();
+          $('#slave-count-control').html(dom);
+
+          // For edit job, can't change slave count.. only for clone job, allow editing..
+          if (edit_job == "active") {
+              $('#slave_count').ace_spinner({value:job_data.slave_count,min:job_data.slave_count,
+                                            max:job_data.slave_count,step:1, btn_up_class:'btn-info', btn_down_class:'btn-info'});
+              $('#slave_count').attr('disabled', true);
+          } else {
+              $('#slave_count').ace_spinner({value:job_data.slave_count,min:0,max:max_slave_count,step:1,
+                                            btn_up_class:'btn-info', btn_down_class:'btn-info'});
+          }
+
+          $('#app_name').val(job_data.app_name);
+          if (edit_job == "active") {
+              $('#app_name').attr('disabled', true);
+          }
+
+
+          $('#default_fs').val(job_data.default_fs);
+          if (edit_job == "active") {
+              $('#default_fs').attr('disabled', true);
+          }
+
+          $('#mr_type_choices').val(job_data.mr_type);
+          if (edit_job == "active") {
+              $('#mr_type_choices').attr('disabled', true);
+          }
+
+          $("#master_flavor > option").each(function() {
+               if (this.text.indexOf(job_data.master_flavor) == 0) {
+                   $(this).prop('selected', 'selected');
+               }
+          });
+
+          if (edit_job == "active") {
+              $('#master_flavor').attr('disabled', true);
+          }
+
+          $("#slave_flavor > option").each(function() {
+               if (this.text.indexOf(job_data.slave_flavor) == 0) {
+                   $(this).prop('selected', 'selected');
+               }
+          });
+
+          if (edit_job == "active") {
+              $('#slave_flavor').attr('disabled', true);
+          }
+
+          if (job_data.cluster_type == 'Transient') {
+              handleTransientChange();
+              $('#drop_down_choices').val(job_data.hadoop_distro);
+              hadoop_config.initialize(distro_categories, $('#drop_down_choices').val(), $('#mr_type_choices').val(), false, (edit_job == "active"));
+
+              if (job_data.config_nondefaults) {
+                  hadoop_config.override_defaults(job_data.config_nondefaults);
+                  hadoop_config.check_and_show_adv_settings(distro_categories, $('#drop_down_choices').val(), $('#mr_type_choices').val(), false);
+              }
+          }
+          else {
+              handlePersistentChange();
+              $('#drop_down_choices').val(job_data.cluster_id);
+              hadoop_config.initialize(distro_categories, "invalid", "invalid", false, false);
+          }
+
+          if (edit_job == "active") {
+              $('#Transient').prop("disabled", true);
+              $('#Persistent').prop("disabled", true);
+          }
+
+          $('#drop_down_choices').change();
+          if (edit_job == "active") {
+              $('#drop_down_choices').attr('disabled', true);
+          }
+
+          $('#show_command').val(job_data.command_line);
+
+          // We need to set the arguments.
+          if (job_type == 'Hadoop Streaming') {
+              // Whatever is between -input and -output is for stream_arguments
+              var re = /(.*-input\s+)(.*)(\s+-output.*)/;
+              var args = $.trim(job_data.command_line.replace(re, "$2"));
+              $('#stream_arguments').val(args);
+
+              // Whatever is after -output is output_path
+              $('#output_path').val($.trim(job_data.command_line.split("-output").pop()));
+              if (edit_job == "active") {
+                  $('#stream_arguments').attr('disabled', true);
+              }
+              if (edit_job == "active") {
+                  $('#output_path').attr('disabled', true);
+              }
+          }
+          else if (job_type.indexOf('Spark') == 0) {
+              $('#jar_arguments').val(job_data.command_line);
+              if (edit_job == "active") {
+                  $('#jar_arguments').attr('disabled', true);
+              }
+          }
+          else {
+              // Whatever comes after $app_name$
+              $('#jar_arguments').val($.trim(job_data.command_line.split("$app_name$").pop()));
+              if (edit_job == "active") {
+                  $('#jar_arguments').attr('disabled', true);
+              }
+          }
+
+          var base_data = rebuildBaseCmdLine();
+          
+          var curr_data = document.getElementById('show_command');
+          curr_data.innerHTML = base_data[0];
+
+          $('#command_line').val(base_data[1]);
+      }
+      else {
+          reloadTransient();
+          hadoop_config.initialize(distro_categories, $('#drop_down_choices').val(), $('#mr_type_choices').val());
+          $('#slave_count').ace_spinner({value:0,min:0,max:max_slave_count,step:1,
+            btn_up_class:'btn-info', btn_down_class:'btn-info'});
+      }
+    
+      if (clusters.length) {
+          if (edit_job != "active") {
+              $('#Persistent').prop("disabled", false);
+          }
+      }
+      else {
+          $('#Persistent').prop("disabled", true);
+      }
+
+      // We want to show a popover when there are no clusters..
+      $(document).on('mouseenter','#persistent_id', function(){
+          if (clusters.length == 0) {
+              timeoutObj = setTimeout(function(){
+                  $('#persistent_id').popover({
+                      trigger: 'manual',
+                      html: true,
+                      title: '',
+                      placement: 'bottom',
+                      content:
+                          function() {
+                              var msg = 'You cannot select the Persistent type because no persistent cluster for the job type exists. </br> Click ';
+                              msg += '<a href=' + '"{% url "createcluster_view" %}"' + '>Create Cluster</a> to create a cluster.';
+                              return msg;
+                          }
+                  });
+
+                  $('#persistent_id').popover("show");
+                  // Now bind to the events..
+                  $('.popover').on('mouseenter', function() {
+                      isPopoverActive = true;
+                  });
+
+                  $('.popover').on('mouseleave', function() {
+                      isPopoverActive = false;
+                      $('#persistent_id').popover('hide');
+                  });
+              }, 200);
+          }
+      });
+
+      $(document).on('mouseleave','#persistent_id', function(){
+          if ($('#Persistent').prop('disabled')) {
+          timeoutObj = setTimeout(function(){
+              if (!isPopoverActive) $('#persistent_id').popover("hide");
+          }, 200);
+          }
+      });
+
+      function getCursorPosition() 
+      {
+         var ctl = document.getElementById('jar_arguments');
+         var startPos = ctl.selectionStart;
+         var endPos = ctl.selectionEnd;
+         return endPos;
+      }
+
+      function setCursorPosition(pos) 
+      {
+         var ctl = document.getElementById('jar_arguments');
+         ctl.setSelectionRange(pos, pos);
+      }
+
+      function reInitializePopover() {
+          $('#' + dco_browse_type).popover({
+              trigger: 'manual',
+              callback: dcoPopoverCallback,
+              animation: true,
+              html: true,
+              title: 'Data Connector Browser&nbsp&nbsp&nbsp&nbsp&nbsp<button type="button" class="close popoverclose">    &times;</button>',
+              placement: 'right',
+              content:
+                  function() {
+                      id = 'tree-'+dco_browse_type;
+                      return '<div id='+id+'></div>';
+                  }
+          }).data('popover').tip().addClass('dco-popover');
+
+          $('#' + dco_browse_type).popover("show");
+
+          $('.popoverclose').on('click', function(){
+              $('#' + dco_browse_type).popover("hide");
+               show_popover = true;
+          });
+
+          // For defaultfs don't allow file type, but for everything else file can be allowed
+          var allow_file = true;
+          if (dco_browse_type == 'dco_browse_defaultfs') {
+              allow_file = false;
+          }
+
+          var options = {id : '#tree-'+dco_browse_type,
+                         allow_file : allow_file,
+                         list : dco_list,
+                         src : 'dco',
+                         url : '{% url "managedco_view" %}',
+                         activateCallback : treeActivateCallback};
+          
+          if ($('#Persistent').is(':checked')) {
+              options.cluster_fs = true;
+              options.cluster_name = $('#drop_down_choices option:selected').text();
+              options.cluster_id = $('#drop_down_choices').val();
+          }
+
+          createDynaTree(options);
+      }
+
+      $(window).resize(function() {
+          if (!show_popover) {
+              reInitializePopover();
+          }
+      });
+
+
+      var show_popover = true;
+      $('.dco_browse').click(function(event) {
+           if (!show_popover) {
+               // Already a popover is being shown. so hide that first
+               $('#' + dco_browse_type).popover("hide");
+
+               // If the user clicked on the same button, then we should return now.
+               // Otherwise show the new popover
+               if (dco_browse_type == $(this).attr('id')) {
+                   show_popover = true;
+                   return;
+               }
+           }
+
+           dco_browse_type = $(this).attr('id');
+
+           // Toggle for next clicks
+           show_popover = false;
+
+           reInitializePopover();
+      });
+
+      function treeActivateCallback(bdfsPath) {
+           if (dco_browse_type != 'dco_browse_defaultfs') {
+               bdfsPath += ' ';
+           }
+
+           /* We have to filter dco path from node.data.path */
+           if (dco_browse_type == 'dco_browse_jar') {
+               var args;
+               var output;
+               args = $('#jar_arguments').val();
+               endPos = getCursorPosition();
+               output = [args.slice(0, endPos), bdfsPath, args.slice(endPos)].join('');
+               $('#jar_arguments').val(output);
+               // Also set the cursor position.
+               var newPos = endPos + bdfsPath.length;
+               setCursorPosition(newPos);
+           }
+           else if (dco_browse_type == 'dco_browse_defaultfs') {
+               $('#default_fs').val(bdfsPath);
+           }
+           else if (dco_browse_type == 'dco_browse_input') {
+               $('#stream_arguments').val(bdfsPath);
+           }
+           else {
+               $('#output_path').val(bdfsPath);
+           }
+
+           // Also rebuild command line as well
+           var base_data = rebuildBaseCmdLine();
+
+           var curr_data = document.getElementById('show_command');
+           curr_data.innerHTML = base_data[0];
+
+           $('#command_line').val(base_data[1]);
+       }
+
+       function handleJobTypeChange(job_type) {
+           //handle with different job type
+           var dom = $('#slave_count');
+           $('#slave_count').closest('.ace-spinner').remove();
+           $('#slave-count-control').html(dom);
+
+           switch(job_type) {
+               case 'Hadoop Streaming':
+                   $('.customjar-jobtype-form').hide();
+                   $('.hiveorpig-jobtype-form').hide();
+                   $('.streaming-jobtype-form').show();
+                   $('#mr-job-choice').show();
+                   $('#slave_count').ace_spinner({value:0,min:0,max:max_slave_count,step:1,
+                       btn_up_class:'btn-info', btn_down_class:'btn-info'});
+                   break;
+
+               case 'Impala Script':
+               case 'Pig Script':
+               case 'Hive Script':
+                   $('.customjar-jobtype-form').hide();
+                   $('.streaming-jobtype-form').hide();
+                   $('.hiveorpig-jobtype-form').show();
+                   $('#mr-job-choice').show();
+                   $('#slave_count').ace_spinner({value:0,min:0,max:max_slave_count,step:1,
+                       btn_up_class:'btn-info', btn_down_class:'btn-info'});
+                   break;
+
+               case 'Spark - Scala Jar':
+               case 'Spark - Java Jar':
+               case 'Spark - Python Script':
+                   $('.hiveorpig-jobtype-form').hide();
+                   $('.streaming-jobtype-form').hide();
+                   $('#mr-job-choice').hide();
+
+                   $('.customjar-jobtype-form').show();
+
+                   if (job_type == 'Spark - Python Script') {
+                       document.getElementById('jar-file-label').innerHTML = "Script File <i class='icon-question-sign' data-rel='tooltip' data-placement='top' data-original-title='"+tooltipMessageJson['script_path_info']+"'></i>";
+
+                       $('#app-name-class').hide();
+                   }
+                   else {
+                       document.getElementById('jar-file-label').innerHTML = "Jar File <i class='icon-question-sign' data-rel='tooltip' data-placement='top' data-original-title='"+tooltipMessageJson['jar_file_info']+"'></i>";
+                   }
+                   //initialize the tooltip on updated element
+                   $('#jar-file-label .icon-question-sign').tooltip();
+                   $('#slave_count').ace_spinner({value:0,min:0,max:max_slave_count,step:1,
+                       btn_up_class:'btn-info', btn_down_class:'btn-info'});
+
+                   break;
+
+               case 'HBase Script':
+                   $('.customjar-jobtype-form').hide();
+                   $('.streaming-jobtype-form').hide();
+                   $('.hiveorpig-jobtype-form').show();
+                   $('#mr-job-choice').show();
+                   //hbase requires a minimum of 2 slaves
+                   $('#slave_count').ace_spinner({value:2,min:2,max:max_slave_count,step:1,
+                       btn_up_class:'btn-info', btn_down_class:'btn-info'});
+                   break;
+                   
+               default:
+                   $('.streaming-jobtype-form').hide();
+                   $('.hiveorpig-jobtype-form').hide();
+                   $('.customjar-jobtype-form').show();
+                   $('#mr-job-choice').show();
+                   document.getElementById('jar-file-label').innerHTML = "Jar File <i class='icon-question-sign' data-rel='tooltip' data-placement='top' data-original-title='"+tooltipMessageJson['jar_file_info']+"'></i>";
+                   //initialize the tooltip on updated element
+                   $('#jar-file-label .icon-question-sign').tooltip();
+                   $('#slave_count').ace_spinner({value:0,min:0,max:max_slave_count,step:1,
+                       btn_up_class:'btn-info', btn_down_class:'btn-info'});
+                   
+                   break;
+           }
+       }
+       
+       $("#job_type").change(function(){
+           if (!show_popover) {
+               // Already a popover is being shown. so hide that first
+               $('#' + dco_browse_type).popover("hide");
+               show_popover = true;
+           }
+
+           // Clear the arguments field here..
+           $('#jar_arguments').val('');
+           $('#stream_arguments').val('');
+           $('#output_path').val('');
+           $('#default_fs').val('');
+           $('#stream_output').val('');
+           $('#output_path').val('');
+
+           handleJobTypeChange($(this).val());
+
+           // User has changed job_type, check if there are any persistent cluster that can be used
+           // for job_type.
+           num_clusters = get_cluster_count();
+
+           //reload or reset clusters when job type changed and cluster type is persistent
+           if (num_clusters) {
+               $('#Persistent').prop('disabled', false);
+           }
+           else {
+               $('#Persistent').prop('disabled', true);
+           }
+           if($('#Persistent').is(':checked')) {
+              if (num_clusters == 0) {
+                  // There are no clusters that can be used to run the job type.. Force transient checked and disable persistent..
+                  $('#Transient').change();
+              }
+              else {
+                  $('#Persistent').change();
+              }
+           }
+           else { // enable or disable the hadoop distribution when cluster type is 'Transient'
+               $('#Transient').change();
+           } 
+       });
+
+       $('#slave_count').on('change', function(){
+           if (edit_job == "active") {
+              if (this.value == job_data.slave_count) {
+                  this.value = job_data.slave_count;
+                  var dom = $('#slave_count');
+                  $('#slave_count').closest('.ace-spinner').remove();
+                  $('#slave-count-control').html(dom);
+                  $('#slave_count').ace_spinner({value:job_data.slave_count,min:job_data.slave_count,
+                      max:job_data.slave_count,step:1,btn_up_class:'btn-info', btn_down_class:'btn-info'});
+              }
+           }
+
+           if (this.value > max_slave_count) {
+               this.value = max_slave_count;
+           }
+
+           if ($('#job_type').val() == "HBase Script") {
+               if (this.value < 2) {
+                   this.value = 2;
+               }
+           }
+       });
+
+
+       $('textarea[class*=autosize]').autosize({append: "\n"});
+
+       function rebuildBaseCmdLine() 
+       {
+           var command_line = '';
+           var data = '';
+
+           // Rebuild command line again.
+           data = 'hadoop jar ';
+           var job_type = $('#job_type').val();
+           var args = '';
+
+           command_line = 'hadoop jar ';
+
+
+           //handle with different job type
+           switch(job_type) {
+               case 'Hadoop Streaming':
+                   if ($('#mapper_file_data').val() != '') {
+                       data += ' -mapper ' + $('#mapper_file_data').val().replace(/C:\\fakepath\\/i, '') + ' ';
+                   }
+                   if ($('#reducer_file_data').val() != '') {
+                       data += ' -reducer ' + $('#reducer_file_data').val().replace(/C:\\fakepath\\/i, '') + ' ';
+                   }
+                   data += '-input ' + $('#stream_arguments').val() + ' ';
+                   data += '-output ' + $('#output_path').val();
+                   command_line += '$hadoop_streaming_jar$ -mapper $exe_mapper$ -reducer $exe_reducer$ ';
+                   command_line += '-input ' + $('#stream_arguments').val() + ' ';
+                   command_line += '-output ' + $('#output_path').val();
+                   break;
+
+               case	'Pig Script':
+                   if ($('#script_file_data').val() != '') {
+                       data += ' -pig ' + $('#script_file_data').val().replace(/C:\\fakepath\\/i, '') + ' ';	
+                   }
+                   break;
+
+               case 'Hive Script':
+                   if ($('#script_file_data').val() != '') {
+                       data += ' -hive ' + $('#script_file_data').val().replace(/C:\\fakepath\\/i, '') + ' ';	
+                   }
+                   break;
+
+               case 'Impala Script':
+                   if ($('#script_file_data').val() != '') {
+                       data += ' -impala ' + $('#script_file_data').val().replace(/C:\\fakepath\\/i, '') + ' ';  
+                   }
+                   break;
+
+               case 'Spark - Scala Jar':
+               case 'Spark - Java Jar':
+               case 'Spark - Python Script':
+                   data = $.trim($('#jar_arguments').val());
+                   command_line = $.trim($('#jar_arguments').val());
+                   break;
+
+               case 'HBase Script':
+                   if ($('#script_file_data').val() != '') {
+                       data += ' -hbase ' + $('#script_file_data').val().replace(/C:\\fakepath\\/i, '') + ' ';
+                   }
+                   break;
+ 
+               default:
+                   if($('#jar_file_data').val() != '') {
+                       data += $('#jar_file_data').val().replace(/C:\\fakepath\\/i, '') + ' ';
+                   }
+                   if($('#app_name').val() != '') {
+                       data += $('#app_name').val() + ' ';	
+                   }
+                   data += $.trim($('#jar_arguments').val());
+                   command_line += '$jar_path$ $app_name$ ' + $.trim($('#jar_arguments').val());
+                   break;
+           }
+           
+           return [data, command_line];
+       }
+
+       $(".command-line").bind('blur focus change', function(e) {
+           // User selecting/deselecting a dco. Rebuild the
+           // arguments string and command line string for the user
+           var base_data = rebuildBaseCmdLine();
+
+           var curr_data = document.getElementById('show_command');
+           curr_data.innerHTML = base_data[0];
+
+           $('#command_line').val(base_data[1]);
+       });
+
+       function reloadTransient() {
+           var drop_down = document.getElementById("drop_down_choices");
+
+           $("#drop_down_label span").html('Hadoop Distribution');
+           $('#drop_down_label .icon-question-sign').attr('data-original-title', tooltipMessageJson['distribution_info']);
+           
+           document.getElementById("drop_down_choices").options.length = 0;
+
+           var job_type = $('#job_type').val();
+           if (job_type.indexOf('Spark') == 0) {
+               for (var i = 0; i < spark_distros.length; i++) {
+                   var o = document.createElement("option");
+                   o.value = spark_distros[i][0];
+                   o.text = spark_distros[i][1];
+                   drop_down.appendChild(o);
+               }
+               $('#mr-job-choice').hide();
+           }
+           else {
+               for (var i = 0; i < hadoop_distros.length; i++) {
+                   var o = document.createElement("option");
+                   o.value = hadoop_distros[i][0];
+                   o.text = hadoop_distros[i][1];
+                   if (job_type == 'Impala Script') {
+                       if (o.value.indexOf("Cloudera") == 0)
+                           drop_down.appendChild(o);
+                   }
+                   else
+                       drop_down.appendChild(o);
+               }
+
+               $('#drop_down_choices').attr('disabled', false);
+               $('#mr-job-choice').show();
+           }
+           hadoop_config.check_and_show_adv_settings(distro_categories, $('#drop_down_choices').val(), $('#mr_type_choices').val());
+       }
+
+       function get_cluster_count() {
+           var num_clusters = 0;
+           switch($('#job_type').val())
+           {
+               case 'Pig Script':
+               case 'Hive Script':
+                   for(var i=0; i<clusters.length; i++) {
+                       if (clusters[i].apps_installed) {
+                           num_clusters++;
+                       }
+                   }
+                   break;
+
+                case 'Impala Script':
+                    for(var i=0; i<clusters.length; i++) {
+                        if (clusters[i].apps_installed && (clusters[i].hadoop_distro.indexOf("Cloudera") != -1)) {
+                            num_clusters++;
+                        }
+                    }
+                    break;
+
+               case 'Spark - Scala Jar':
+               case 'Spark - Java Jar':
+               case 'Spark - Python Script':
+                   for(var i=0; i<clusters.length; i++) {
+                       if (clusters[i].cluster_type == 'Spark' || clusters[i].include_spark_installation) {
+                           num_clusters++;
+                       }
+                   }
+                   break;
+
+               case 'Hadoop Streaming':
+               default:
+                   for (var i=0; i<clusters.length; i++) {
+                       num_clusters++;
+                   }
+                   break;
+
+           }
+           return num_clusters;
+       }
+
+       function reloadPersistent() {
+           var num_clusters = 0;
+           
+           // Populate drop_down list from cluster_choices array
+           $("#drop_down_label span").html('Cluster');
+           $('#drop_down_label .icon-question-sign').attr('data-original-title', tooltipMessageJson['cluster_list_info']);
+           
+           document.getElementById("drop_down_choices").options.length = 0;
+
+           //handle with different job type
+           switch($('#job_type').val())
+           {
+               case	'Pig Script':
+               case	'Hive Script':
+                   $('#drop_down_choices').html(function(){
+                       var html_str = '';
+                       for(var i=0; i<clusters.length; i++) {
+                           if(clusters[i].apps_installed) {
+                               html_str += "<option value='" + clusters[i].uuid + "'>" + clusters[i].cluster_name + "</option>";
+                               num_clusters++;
+                           }
+                       }
+                       return html_str;
+                   });
+                   break;
+
+                case  'Impala Script':
+                    //enable the dropdown to use for Cluster list, which was used for Hadoop Distribution
+                    $('#drop_down_choices').attr('disabled', false);
+
+                    $('#drop_down_choices').html(function(){
+                        var html_str = '';
+                        for(var i=0; i<clusters.length; i++) {
+                            if(clusters[i].apps_installed && (clusters[i].hadoop_distro.indexOf("Cloudera") != -1)) {
+                                html_str += "<option value='" + clusters[i].uuid + "'>" + clusters[i].cluster_name + "</option>";
+                               num_clusters++;
+                            }
+                        }
+                        return html_str;
+                    });
+                    break;
+
+               case 'Spark - Scala Jar':
+               case 'Spark - Java Jar':
+               case 'Spark - Python Script':
+                   //enable the dropdown to use for Cluster list, which was used for Hadoop Distribution
+                   $('#drop_down_choices').attr('disabled', false);
+
+                   $('#drop_down_choices').html(function(){
+                       var html_str = '';
+                       for(var i=0; i<clusters.length; i++) {
+                            if (clusters[i].cluster_type == 'Spark' || clusters[i].include_spark_installation) {
+                                html_str += "<option value='" + clusters[i].uuid + "'>" + clusters[i].cluster_name + "</option>";
+                               num_clusters++;
+                            }
+                       }
+                       return html_str;
+                   });
+                   break;
+
+               case 'HBase Script':
+                   $('#drop_down_choices').html(function(){
+                       var html_str = '';
+                       for(var i=0; i<clusters.length; i++) {
+                            if (clusters[i].cluster_type == 'HBase') {
+                                html_str += "<option value='" + clusters[i].uuid + "'>" + clusters[i].cluster_name + "</option>";
+                                num_clusters++;
+                            }
+                       }
+                       return html_str;
+                   });
+                   break;
+
+               case 'Hadoop Streaming':
+               default:
+                   $('#drop_down_choices').html(function(){
+                       var html_str = '';
+                       for(var i=0; i<clusters.length; i++) {
+                            if (clusters[i].cluster_type == 'Hadoop') {
+                                html_str += "<option value='" + clusters[i].uuid + "'>" + clusters[i].cluster_name + "</option>";
+                           
+                                num_clusters++;
+                            }
+                       }
+                       return html_str;
+                   });
+                   break;
+
+           }
+           return num_clusters;
+       }
+
+       function handleTransientChange() {
+           $('#slave-count').show();
+           $('#mr-job-choice').show();
+           $('#default-fs-choice').show();
+           $('#master-flavor').show();
+           $('#slave-flavor').show();
+           reloadTransient();
+
+           $('#Transient').prop("checked", true);
+           $('#Persistent').prop("checked", false);
+
+           $('#drop_down_choices').attr('disabled', false);
+           $('#' + dco_browse_type).popover("hide");
+           show_popover = true;
+           hadoop_config.check_and_show_adv_settings(distro_categories, $('#drop_down_choices').val(), $('#mr_type_choices').val());
+       }
+               
+       function handlePersistentChange() {
+           $('#slave-count').hide();
+           $('#mr-job-choice').hide();
+           $('#default-fs-choice').hide();
+           $('#master-flavor').hide();
+           $('#slave-flavor').hide();
+           reloadPersistent();
+           $('#Transient').prop("checked", false);
+           $('#Persistent').prop("checked", true);
+           $('#drop_down_choices').attr('disabled', false);
+           $('#' + dco_browse_type).popover("hide");
+           show_popover = true;
+           // Don't show adv settings for persistent cluster
+           hadoop_config.check_and_show_adv_settings(distro_categories, "invalid", "invalid");
+       }
+
+       $('#Transient').change(function() {
+           handleTransientChange();
+       });
+
+       $('#Persistent').change(function() {
+           handlePersistentChange();
+       });
+
+       // Common params for all file widgets..
+       var params = {};
+       params['droppable'] = false;
+       params['onchange'] = null;
+       params['icon_remove'] = null;
+       params['thumbnail'] = false;
+
+       $('#jar_file_data').change(function() {
+           $('#new_jar_file').val("Yes");
+       });
+
+       $('#mapper_file_data').change(function() {
+           $('#new_mapper_file').val("Yes");
+       });
+
+       $('#reducer_file_data').change(function() {
+           $('#new_reducer_file').val("Yes");
+       });
+
+       $('#script_file_data').change(function() {
+           $('#new_script_file').val("Yes");
+       });
+
+       if (job_data.job_type == 'Hadoop Custom Jar') {
+           params['no_file'] = dir_base_name(job_data.jar_path);
+           params['btn_choose'] = 'Change';
+           params['btn_change'] = 'Change';
+           $('#jar_file_data').ace_file_input(params);
+       }
+       else {
+           params['no_file'] = 'Choose a file';
+           params['btn_choose'] = 'Choose';
+           params['btn_change'] = 'Change';
+           $('#jar_file_data').ace_file_input(params);
+       }
+
+       if (job_data.job_type == 'Hadoop Streaming') {
+           params['btn_choose'] = 'Change';
+           params['btn_change'] = 'Change';
+
+           var file_name = job_data.mapper.replace(/^.*[\/\\]/g, '');
+           params['no_file'] = dir_base_name(job_data.mapper);
+           $('#mapper_file_data').ace_file_input(params);
+
+           var file_name = job_data.reducer.replace(/^.*[\/\\]/g, '');
+           params['no_file'] = dir_base_name(job_data.reducer);
+           $('#reducer_file_data').ace_file_input(params);
+       }
+       else {
+           params['btn_choose'] = 'Choose';
+           params['btn_change'] = 'Change';
+
+           params['no_file'] = 'Choose the Reducer Script ...';
+           $('#reducer_file_data').ace_file_input(params);
+
+           params['no_file'] = 'Choose the Mapper Script ...';
+           $('#mapper_file_data').ace_file_input(params);
+       }
+
+       if (job_data.job_type == 'Impala Script' ||
+             job_data.job_type == 'Pig Script' ||
+             job_data.job_type == 'Hive Script' ||
+             job_data.job_type == 'HBase Script') {
+           params['no_file'] = dir_base_name(job_data.jar_path);
+           params['btn_choose'] = 'Change';
+           params['btn_change'] = 'Change';
+
+           $('#script_file_data').ace_file_input(params);
+       }
+       else {
+           params['no_file'] = 'Choose a file';
+           params['btn_choose'] = 'Choose';
+           params['btn_change'] = 'Change';
+
+           $('#script_file_data').ace_file_input(params);
+       }
+
+       $.validator.addMethod("validName", function(value, element) {
+           if (edit_job == "active") {
+               // For edit, same name is ok...
+               if (job_data.job_name == value) {
+                   return true;
+               }
+           }
+
+           var job_list = {{job_list|safe}};
+           for (i = 0; i < job_list.length; i++) {
+               if (job_list[i].job_name == value) {
+                   return false;
+               }
+           }
+           return true;
+       }, "Job name exist. Please specify a different one");
+
+       $.validator.addMethod("validArguments", function(value, element) {
+           var job_type = $('#job_type').val();
+           var args;
+
+           if ((job_type == 'Hadoop Custom Jar') || (job_type.indexOf('Spark') == 0)) {
+               args = $.trim($('#jar_arguments').val());
+               tokens = args.replace(/\s+/g, ' ').split(" ");
+               if (tokens.length < 1) {
+                   return false;
+               }
+           }
+           else if (job_type == 'Hadoop Streaming') {
+               args = $.trim($('#stream_arguments').val());
+               // There has to be atleast one argument
+               tokens = args.replace(/\s+/g, ' ').split(" ");
+               if (tokens.length != 1) {
+                   return false;
+               }
+           }
+           return true;
+       }, "Invalid Arguments");
+
+       $('#createjob').validate({
+           errorElement: 'span',
+           errorClass: 'help-inline',
+           focusInvalid: false,
+           rules: {
+               name: {
+                   required: true,
+                   minlength: 1,
+                   maxlength: 32,
+                   validName: true
+               },
+               jar_file_data: {
+                   required : {
+                       depends: function() {
+                           if ($('#new_jar_file').val() == "No") {
+                               return false;
+                           }
+                           var job_type = $('#job_type').val();
+                           if ((job_type == 'Hadoop Custom Jar') || (job_type.indexOf('Spark') == 0)) {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+               mapper_file_data: {
+                   required : {
+                       depends: function() {
+                           if ($('#new_mapper_file').val() == "No") {
+                               return false;
+                           }
+                           if ($('#job_type').val() == 'Hadoop Streaming') {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+               reducer_file_data: {
+                   required : {
+                       depends: function() {
+                           if ($('#new_reducer_file').val() == "No") {
+                               return false;
+                           }
+                           if ($('#job_type').val() == 'Hadoop Streaming') {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+               script_file_data: {
+                   required : {
+                       depends: function() {
+                           if ($('#new_script_file').val() == "No") {
+                               return false;
+                           }
+                           if ($('#job_type').val() == 'Pig Script' ||  $('#job_type').val() == 'Hive Script' || $('#job_type').val() == 'Impala Script' ||  $('#job_type').val() == 'HBase Script') {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+               app_name: {
+                   required : {
+                       depends: function() {
+                           var job_type = $('#job_type').val();
+                           if (job_type == 'Hadoop Custom Jar' ||
+                                 job_type == 'Spark - Scala Jar' ||
+                                 job_type == 'Spark - Java Jar') {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+               slave_count: {
+                   required : {
+                       depends: function() {
+                           // Slave count is required only for
+                           if ($('#Transient').is(':checked')) {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+               cluster_type: 'required',
+               drop_down_choices: 'required',
+               jar_arguments : {
+                   validArguments : true,
+               },
+               stream_arguments : {
+                   required : true,
+                   validArguments : true,
+               },
+               output_path: {
+                   required : {
+                       depends: function() {
+                           if ($('#job_type').val() == 'Hadoop Streaming') {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+               mr_type_choices: {
+                   required : {
+                       depends: function() {
+                           // MR type is required only for
+                           if ($('#Transient').is(':checked')) {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+               master_flavor: {
+                   required : {
+                       depends: function() {
+                           // Master flavor is required only for
+                           if ($('#Transient').is(':checked')) {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+               slave_flavor: {
+                   required : {
+                       depends: function() {
+                           // Slave flavor type is required only for
+                           if ($('#Transient').is(':checked')) {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               }
+           },
+
+           messages: {
+               name: {
+                   required: "Please provide a valid job name.",
+                   minlength: $.format("Job name must be atleast {0} characters"),
+                   maxlength: $.format("Job name must not exceed {0} characters")
+               },
+               app_name:  "Please provide a valid app name.",
+               jar_file_data: "Please provide a valid jar file.",
+               slave_count: "Please enter valid Slave count",
+               cluster_type: "Please select cluster type",
+               jar_arguments: "Invalid arguments",
+               stream_arguments: "Invalid arguments for streaming job",
+               drop_down_choices:$('#Transient').is(':checked') ? 'Please select a Distribution' : 'Please select a Cluster',
+               output_path: "Please specify an output path for the streaming job",
+               mr_type_choices:$('#Transient').is(':checked') ? 'Please select a Distribution' : 'Please select a Cluster',
+               master_flavor: "Please provide Master Flavor",
+               slave_flavor: "Please provide Slave Flavor",
+           },
+
+           invalidHandler:  function (event, validator) {
+               $('.alert-error', $('#createjob')).show();
+           },
+
+           highlight: function (e) {
+               $(e).closest('.control-group').removeClass('info').addClass('error');
+           },
+
+           success: function (e) {
+               $(e).closest('.control-group').removeClass('error').addClass('info');
+               $(e).remove();
+           },
+             
+           errorPlacement: function (error, element) {
+               bdStopSpin();
+               if(element.is(':checkbox') || element.is(':radio')) {
+                   var controls = element.closest('.controls');
+                   if(controls.find(':checkbox,:radio').length > 1) controls.append(error);
+                   else error.insertAfter(element.nextAll('.lbl').eq(0));
+               }
+               else if(element.is('.chzn-select')) {
+                   error.insertAfter(element.nextAll('[class*="chzn-container"]').eq(0));
+               }
+               else if (element.is('#jar_file_data') || element.is('#mapper_file_data') || element.is('#reducer_file_data') || element.is('#script_file_data')) {
+                   error.insertAfter(element.parent());
+               }
+               else if (element.is('#jar_arguments')) {
+                   element.next().after(error);
+               }
+               else if (element.is('#stream_arguments')) {
+                   element.next().after(error);
+               }
+               else if (element.is('#output_path')) {
+                   element.next().after(error);
+               }
+               else error.insertAfter(element);
+           },
+           submitHandler: function (form) {
+              hadoop_config.disable_default_params(form);
+              if (edit_job == "active") {
+                  bdsFormSubmit(form, "Failed to edit job", '{% url "managejob_view" %}');
+              }
+              else {
+                  bdsFormSubmit(form, "Failed to create job", '{% url "managejob_view" %}');
+              }
+           },
+       });
+
+   });
+</script>
+{% endblock %}

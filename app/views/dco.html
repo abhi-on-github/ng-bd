@@ -1,0 +1,117 @@
+{% block dco_form %}
+{% load url from future %}
+{% if eltId == "tmpfs" %}
+<div class="control-group">
+   <input type="text" name="{{ eltId }}name" id="{{ eltId }}name" value="{{dco.name}}" style="visibility:hidden" />
+</div>
+<div class="control-group">
+   <input type="text" name="{{ eltId }}description" id="{{ eltId }}description" value="{{dco.description}}"  style="visibility:hidden"/>
+</div>
+{% else %}
+<div class="control-group">
+   <label class="control-label">Name <i class='icon-question-sign' id='dco_name_info' data-rel='tooltip' data-placement='top'></i></label>
+   <div class="input controls">
+      <input type="text" name="{{ eltId }}name" id="{{ eltId }}name" value="{{dco.name}}">
+   </div>
+</div>
+
+<div class="control-group">
+   <label class="control-label">Description <i class='icon-question-sign' id='dco_description_info' data-rel='tooltip' data-placement='top'></i></label>
+   <div class="controls">
+      <input type="text" name="{{ eltId }}description" id="{{ eltId }}description" value="{{dco.description}}" />
+   </div>
+</div>
+{% endif %}
+
+<div class="control-group">
+   <label class="control-label">Select Type <i class='icon-question-sign' id='dco_type_info' data-rel='tooltip' data-placement='top'></i></label>
+   <div class="controls">
+      <select name="{{ eltId }}type" id="{{ eltId }}type">
+         <option name="{{ eltId }}type" value='hdfs'>HDFS</option>
+         <option name="{{ eltId }}type" value='gluster'>Gluster</option>
+         <option name="{{ eltId }}type" value='nfs'>NFS</option>
+         {% if allow_swift_dco %}
+         <option name="{{ eltId }}type" value='swift'>Swift</option>
+         {% endif %}
+         {% if request.session.bds_global_bundleflavor == "freemium" %}
+         <option name="{{ eltId }}type" value='file'>File</option>
+         {% endif %}
+      </select>
+   </div>
+</div>
+
+<div class="{{ eltId }}gluster-form {{ eltId }}hdfs-form {{ eltId }}nfs-form {{ eltId }}swift-form">
+   <div class="control-group">
+      <label class="control-label">Host <i class='icon-question-sign' id='host_info' data-rel='tooltip' data-placement='top'></i></label>
+      <div class="controls">
+         <input type="text" name="{{ eltId }}host" id="{{ eltId }}host" value="{{dco.host}}"/>
+      </div>
+   </div>
+</div>
+
+<div class="{{ eltId }}gluster-form">
+   <div class="control-group">
+      <label class="control-label">Port <i class='icon-question-sign' id='port_info' data-rel='tooltip' data-placement='top'></i></label>
+      <div class="controls">
+         <input  type="text" name="{{ eltId }}gluster_port" id="{{ eltId }}gluster_port" class="{{ eltId }}port" value="{{dco.port}}"/>
+      </div>
+   </div>
+   <div class="control-group">
+      <label class="control-label">Volume <i class='icon-question-sign' id='volume_info' data-rel='tooltip' data-placement='top'></i></label>
+      <div class="controls">
+         <input  type="text" name="{{ eltId }}volume" id="{{ eltId }}volume"  value="{{dco.volume}}"/>
+      </div>
+   </div>
+</div>
+
+<div class="{{ eltId }}hdfs-form">
+   <div class="control-group">
+      <label class="control-label">Standby NameNode Host <i class='icon-question-sign' id='backup_host_info' data-rel='tooltip' data-placement='top'></i></label>
+      <div class="controls">
+         <input type="text" name="{{ eltId }}backup_host" id="{{ eltId }}backup_host" value="{{dco.backup_host}}"/>
+      </div>
+   </div>
+   <div class="control-group">
+      <label class="control-label">Port <i class='icon-question-sign' id='port_info' data-rel='tooltip' data-placement='top'></i></label>
+      <div class="controls">
+         <input  type="text" name="{{ eltId }}hdfs_port" id="{{ eltId }}hdfs_port" class="{{ eltId }}port" value="{{dco.port}}"/>
+      </div>
+   </div>
+</div>
+
+<div class="{{ eltId }}nfs-form">
+   <div class="control-group">
+      <label class="control-label">Share <i class='icon-question-sign' id='share_info' data-rel='tooltip' data-placement='top'></i></label>
+      <div class="controls">
+         <input type="text" name="{{ eltId }}share" id="{{ eltId }}share" value="{{dco.share}}"/>
+      </div>
+   </div>
+</div>
+
+<div class="{{ eltId }}swift-form">
+   <div class="control-group">
+      <label class="control-label">Account <i class='icon-question-sign' id='account_info' data-rel='tooltip' data-placement='top'></i></label>
+      <div class="controls">
+         <input type="text" name="{{ eltId }}account" id="{{ eltId }}account" value="{{dco.account}}"/>
+      </div>
+   </div>
+   <div class="control-group">
+      <label class="control-label">Container <i class='icon-question-sign' id='container_info' data-rel='tooltip' data-placement='top'></i></label>
+      <div class="controls">
+         <input  type="text" name="{{ eltId }}container" id="{{ eltId }}container" value="{{dco.container}}"/>
+      </div>
+   </div>
+   <div class="control-group">
+      <label class="control-label">Secure <i class='icon-question-sign' id='secure_info' data-rel='tooltip' data-placement='top'></i></label>
+      <div class="controls" id="{{ eltId }}swift_type" name="{{ eltId }}swift_type">
+         <label class="blue"><input type="radio" name="{{ eltId }}swift_secure" id="{{ eltId }}swift-secure" checked="checked"/>
+            <span class="lbl"> Yes</span>
+         </label>
+         <label class="blue"><input type="radio" name="{{ eltId }}swift_notsecure" id="{{ eltId }}swift-notsecure" />
+            <span class="lbl"> No</span>
+         </label>
+      </div>
+   </div>
+</div>
+
+{% endblock %}

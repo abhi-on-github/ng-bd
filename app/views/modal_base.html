@@ -1,0 +1,66 @@
+<div class="form-container">
+{% block modal_header %}
+<div class="modal-header blue">
+   <div class="bluedata-page-header position-relative">
+   <h3>{{ content_title }}</h3>
+   </div>
+</div>
+{% endblock %}
+
+<div class="modal-body large">
+{% block modal_body %}
+{% endblock %}
+</div>
+
+{% block modal_footer %}
+<div class="modal-footer">
+   <div style='margin-bottom:15px;'>
+     <div class='form-process-bar'>
+        <span>...please wait</span> 
+     </div>
+     <div class='form-error-bar'>
+        <span></span>
+     </div>
+     <div class='form-success-bar'>
+        <span></span> 
+     </div>
+   </div>
+   <button type="button" id="modal-form-cancel" class="btn pull-left" type="cancel" style='margin-left:15px;'><i class="icon-cancel"></i> Cancel</button>
+   <button type="button" id="modal-form-submit" class="btn btn-primary" type="submit" style='margin-right:15px;'><i class="icon-ok"></i> Submit</button>
+</div>
+{% endblock %}
+</div>
+
+{% block js %}
+{% block page_script %}
+{% endblock %}
+{% block common_script %}
+<script id="source" language="javascript" type="text/javascript">
+   $(document).ready(function () {
+       //reset the form submission status bar
+       $('.form-process-bar, .form-error-bar, .form-success-bar').removeClass('active'); 
+       
+       $('#modal-form-cancel').on('click', function(e){
+           $('#formModal').modal('hide');
+       });
+
+       $('#modal-form-submit').on('click', function(e){
+           e.preventDefault();
+           if ($('.bds-form').valid()) {
+               $('.form-process-bar').addClass('active'); 
+               $('.bds-form').submit();
+           }
+           return false;
+       });
+
+       $('.bds-modal-form').on('keypress', function(e) {
+           if (e.keyCode == 13 && e.target.type != "textarea") {
+               e.preventDefault();
+               $('.form-process-bar').addClass('active');
+               $('.bds-modal-form').submit();
+           }
+       });
+   });
+</script>
+{% endblock %}
+{% endblock %}

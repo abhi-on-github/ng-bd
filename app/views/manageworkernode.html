@@ -1,0 +1,728 @@
+{% extends 'base.html' %}
+{% load url from future %}
+{% block main_content %}
+<div class="row-fluid">
+   <div class="span12">
+      <form class="bds-form form-horizontal add-workers-form" style="background-color: #f5f5f5; border: 1px solid #e5e5e5;" id="addworkers" action='{% url "addworkers_view" %}' enctype="multipart/form-data" method="POST">{% csrf_token %}
+
+         <input id="fake_user_name" name="fake_user[name]" style="position:absolute; top:-100px;" type="text" value="Dummy Autofill">
+         <input id="fake_password" name="fake_pass[name]" style="position:absolute; top:-100px;" type="password" value="Dummy Autofile">
+
+          <div class="span12" style="margin-left: 0px; padding-top: 15px;">
+             <div class="control-group span7" style="margin-left: 5px;">
+                <label class="control-label" style="width: 85px">Worker IP
+                    <i class='icon-question-sign' id='worker_ip_info' data-rel='tooltip' data-placement='top'></i>
+                </label>
+                <div class="input controls"  id="div_worker_ip" style="margin-left: 100px;">
+                   <input class="input-xlarge" name="worker_ip0" type="text" id="worker_ip0" style="margin-left: 0px"/>
+                </div>
+                 <div class="span12">
+                     <div class="span6" style="font-size: 11px; margin-top: 5px; color: #999999">
+                         Acceptable formats for IP addresses: 192.168.162.1
+                        <div style="margin-top: -5px;">192.168.162.1,12,76, 192.162.168.12</div>
+                        <div style="margin-top: -5px;">192.168.162.1-12</div>
+                        <div style="margin-top: -5px;">10.1.10.1-12,15,192.162.168.12-15</div>
+                     </div>
+                 </div>
+             </div>
+
+             <div class="control-group span4" style="margin-left: 55px;">
+                <label class="control-label" style="width: 95px">Credentials <i class='icon-question-sign' id='credentials_info' data-rel='tooltip' data-placement='top'></i></label>
+                <div class="controls" id="cluster_type" name="cluster_type" style="margin-left: 125px;">
+                   <label class="blue"><input type="radio" name="root_credential" id="root_credential" checked/>
+                      <span class="lbl"> Root Access</span>
+                   </label>
+                   <label class="blue">
+                      <input type="radio" name="ssh_key_credential" id="ssh_key_credential" />
+                      <span class="lbl"> SSH Key based Access</span>
+                   </label>
+                </div>
+                <div class="root-credentials span4" style="margin: 10px 0 0 0;">
+                    <div class="control-group">
+                       <label class="control-label" style="width: 112px;">
+                          <span>Root Password</span><i class='icon-question-sign' id='worker_password_info' data-rel='tooltip' data-placement='top'></i>
+                       </label>
+                       <div class="input controls" style="margin-left: 125px;">
+                          <input type="password" name="worker_password" id="worker_password" class="input-medium" />
+                       </div>
+                    </div>
+                </div>
+
+                <div class="sshkeys-credentials span4" style="display:none;">
+                    <div class="control-group">
+                       <label class="control-label">
+                          <span>Path to SSH Key file</span><i class='icon-question-sign' id='worker_ssh_key_path_info' data-rel='tooltip' data-placement='top'></i>
+                       </label>
+                       <div class="input controls">
+                          <input class="input-medium" name="worker_ssh_key_path" type="text" id="worker_ssh_key_path" />
+                       </div>
+                    </div>
+
+                    <div class="control-group">
+                       <label class="control-label">
+                          <span>Passphrase</span><i class='icon-question-sign' id='worker_ssh_passphrase_info' data-rel='tooltip' data-placement='top'></i>
+                       </label>
+                       <div class="input controls">
+                          <input class="input-medium" name="worker_ssh_passphrase" type="password" id="worker_ssh_passphrase" />
+                       </div>
+                    </div>
+                </div>
+             </div>
+
+          </div>
+
+          <div class="form-actions" style="margin: 5px; padding: 0px; border: 0px;">
+            <button type="button" id="form-submit" class="pull-left btn btn-primary" type="submit"><i class="icon-ok"></i> Add Workers</button>
+         </div>
+      </form>
+   </div>
+</div>
+
+<div class="space"></div>
+
+<div class="row-fluid">
+   <div class="span6">
+      <h3 class="row-fluid header smaller lighter blue">
+         Worker(s) Status
+
+         <span class="pull-right">
+            <a href='#'>
+               <button class="btn btn-success btn-small worker_op table_install" >
+                  <i class="icon-plus"></i>
+                  Install
+               </button>
+            </a>
+         </span>
+      </h3>
+
+      <div class="space-6"></div>
+
+      <div class="space-6"></div>
+
+      <table id="id_workers_table" class="table table-striped table-bordered table-hover bd-table" >
+         {% include 'table_headers.html' %}
+         <tbody>
+            {% for row in workers_list %}
+            {% if row.state != 'installed' %}
+            <tr>
+
+               <td class='center'>
+               </td>
+
+               <td style="display:none">{{ row.id }}</td>
+               <td style="display:none">{{ row.state }}</td>
+               <td><span>{{ row.ip }}
+                  {% if row.hostname != '' %}
+                  &nbsp;&nbsp;( {{ row.hostname }} )
+                  {% endif %}
+                  </span></td>
+               
+               <td class="center" style="width:200px;"> 
+                  {% if row.state == 'added' %}
+                  <div class="progress progress-warning progress-striped active" style="width:200px;" data-percent="Running bundle">
+                     <div class="bar" style="width: 100%"></div>
+                  </div>
+                  {% elif row.state == 'connecting' %}
+                  <div class="progress progress-warning progress-info"  style="width:200px;" data-percent="Connecting">
+                     <div class="bar" style="width: 100%"></div>
+                  </div>
+                  {% elif row.state == 'ready' %}
+                  <div class="progress progress-warning progress-info"  style="width:200px;" data-percent="Bundle setup completed">
+                     <div class="bar" style="width: 100%"></div>
+                  </div>
+                  {% elif row.state == 'install_scheduled' %}
+                  <div class="progress progress-info progress-striped active"  style="width:200px;" data-percent="Install scheduled">
+                     <div class="bar" style="width: 100%"></div>
+                  </div>
+                  {% elif row.state == 'installing' %}
+                  <span class="alter-details-modal" data-target="#alterDetails" data-toggle="modal" data-title='' data-content=''>
+                     <div class="progress progress-success progress-striped active"  style="width:200px;" data-percent="Installing">
+                        <div class="bar" style="width: 100%"></div>
+                     </div>
+                  </span>
+                  {% elif row.state == 'error' %}
+                  <span data-rel="popover" data-placement="right" data-content="{{row.status_info}}">
+                     <div class="progress progress-danger" style="width:200px;" data-percent="Error">
+                        <div class="bar" style="width: 100%"></div>
+                     </div>
+                  </span>
+                  {% elif row.state == 'delete_in_progress' %}
+                  <div class="progress progress-danger" style="width:200px;" data-percent="Deleting">
+                     <div class="bar" style="width: 100%"></div>
+                  </div>
+                  {% endif %}
+               </td>
+
+               <td>
+                  <div class="visible-desktop action-buttons row-actions"></div>
+               </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+         </tbody>
+      </table>
+   </div>
+
+   <div class="span6">
+
+      <h3 class="header smaller lighter blue">Added Workers</h3>
+
+      <div class="space-6"></div>
+
+      <div class="space-6"></div>
+
+      <table id="id_added_workers_table" class="table table-striped table-bordered table-hover bd-table" >
+         {% include 'table_headers.html' with headers=worker_headers %}
+         <tbody>
+            {% for row in workers_list %}
+            {% if row.state == "installed" and row.ip != controller_ip %}
+            <tr>
+               <td style="display:none">{{ row.id }}</td>
+               <td><span>{{ row.ip }}
+                  {% if row.hostname != '' %}
+                  &nbsp;&nbsp;( {{row.hostname}} )
+                  {% endif %}
+                  </span>
+               </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+         </tbody>
+      </table>
+      
+   </div>
+</div>
+<div id="alterDetails" class="modal hide fade" style='display:none;'>
+   <div class="modal-header blue">
+      <h5 style='display:inline; margin-left:7px;'></h5>
+      <a href="#" class="close" data-dismiss="modal">&times;</a>
+   </div>
+   <div class="modal-body">
+   </div>
+</div>
+
+{% endblock %}
+{% block page_script %}
+<script src="/bdswebui/static/bdswebui/js/ansi_html.js"  type="text/javascript"></script>
+
+<script type="text/javascript">
+
+   $(function() {
+       var install_progress;
+
+       $(document).on('click', '.alter-details-modal', function(){
+           $('#alterDetails .modal-header h5').html("Worker Install details");
+           $('#alterDetails .modal-body').html(ansi_up.escape_for_html(install_progress.log_output));
+       });
+
+       registerDataTable('#id_workers_table',
+                         '#',
+                         '#',
+                         '#',
+                         '',
+                         '.table_delete',
+                         {{headers|safe}}, {{headers|length}},
+                         0, 0, 0);
+
+       var controller_ip = '{{controller_ip}}';
+       var workers = {{workers|safe}};
+
+       function getCheckBox(worker) {
+           var checkbox = '<label><input type="checkbox"';
+           var state = worker.state;
+           if (state == 'ready') {
+               // If the controller is configured with local hdfs system, then this worker must have atleast one
+               if (!isEmptyDisksFound(worker)) {
+                   checkbox += ' disabled ';
+               }
+           }
+           else {
+               checkbox += ' disabled ';
+           }
+           checkbox += '/><span class="lbl"></span></label>';
+           return checkbox;
+       }
+       function getButtons(worker) {
+           var state = worker.state;
+           // Show install only for ready workers
+           var button = '<div class="visible-desktop action-buttons ">';
+           if (state == 'ready') {
+               // If the controller is configured with local hdfs system, then this worker must have atleast one
+               if (isEmptyDisksFound(worker)) {
+                   button += '<a class="green row_install" data-rel="tooltip" title="Install" data-placement="bottom">' +
+                             '<i class="icon-plus bigger-120"></i>' +
+                             '</a>';
+               }
+               button += '<a class="red row_clear" data-rel="tooltip" title="Remove" data-placement="bottom">' +
+                         '<i class="icon-trash bigger-120"></i>' +
+                         '</a>';
+           }
+           else if (state == 'error') {
+               button += '<a class="red row_clear" data-rel="tooltip" title="Remove" data-placement="bottom">' +
+                         '<i class="icon-trash bigger-120"></i>' +
+                         '</a>';
+           }
+           
+           button += '</div>';
+           return button;
+       }
+
+       function findWorker(id) {
+           for (var i in workers) {
+               if (workers[i]._links.self.href == id) {
+                   return workers[i];
+               }
+           }
+           return "";
+       }
+
+       function replaceWorker(worker) {
+           for (var i in workers) {
+               if (workers[i]._links.self.href == worker._links.self.href) {
+                   workers[i] = worker;
+                   break;
+               }
+           }
+       }
+
+       function isEmptyDisksFound(worker) {
+           var storage = worker.sysinfo.storage;
+           var disksFound = 0;
+           for (var i in storage) {
+               if (!storage[i].info.HasPartitions) {
+                   if (storage[i].info.SizeBytes >= 500*1024*1024*1024) {
+                       return true;
+                   }
+               }
+           }
+           return false;
+       }
+
+       for (var i = 0; i < oTable[0].fnGetData().length; i++) {
+           var rowData = oTable[0].fnGetData(i);
+           var id = rowData[1];
+           var state = rowData[2];
+
+           worker = findWorker(id);
+           if (worker != "") {
+               var newName = '<span>' + worker.ip;
+               if (!isEmpty(worker.sysinfo)) {
+                   if (worker.state == 'ready' && !isEmptyDisksFound(worker)) {
+                       newName = '<span class="red" data-rel="popover" data-placement="bottom" data-content="Extra disk(s) not found to install hdfs">' + worker.ip;
+                   }
+               }
+               if (worker.hostname != "") {
+                   newName += ' ( ' + worker.hostname + ' )';
+               }
+               newName += '</span>';
+               oTable[0].fnUpdate(getCheckBox(worker), i, 0, false);
+               oTable[0].fnUpdate(newName, i, 3, false);
+
+               oTable[0].fnUpdate(getButtons(worker), i, 5, false);
+           }
+       }
+
+       function installOrClearWorkers(workerList, install) {
+           bdStartSpin();
+           var data = {
+               operation: install ? 'install_worker_list' : 'delete',
+               workerlist: workerList
+           };
+           $.ajax({
+               url: '{% url "manageworker_view" %}',
+               method: 'post',
+               contentType: "application/json; charset=utf-8",
+               data: JSON.stringify(data),
+               csrfmiddlewaretoken: csrftoken,
+               headers: {'X-CSRFToken' : csrftoken},
+               success: function() {
+                   bdStopSpin();
+                   document.location.href = '{% url "manageworker_view" %}';
+               },
+
+               error: function() {
+                   bdStopSpin();
+                   document.location.href = '{% url "manageworker_view" %}';
+               },
+           });
+       }
+
+       $('.table_install').on('click', function() {
+           var table = $(this).closest('table');
+           var newworkerlist = new Array();
+
+           var table = $(this).closest('table');
+           $('tbody input[type="checkbox"]', '#id_workers_table').each(function() {
+               if ($(this).is(':checked')) {
+                   var currentRow = $(this).closest('tr');
+                   var rowData = $('#id_workers_table').dataTable().fnGetData(currentRow[0]);
+                   newworkerlist.push({"id" : rowData[1]});
+               }
+           });
+
+           if (newworkerlist.length == 0) {
+               return;
+           }
+
+           installOrClearWorkers(newworkerlist, true);
+
+       });
+
+       $('#id_workers_table').on('click', '.row_install', function(event) {
+           var currentRow = $(this).closest('tr');
+           var rowData = $('#id_workers_table').dataTable().fnGetData(currentRow[0]);
+           installOrClearWorkers([{"id" : rowData[1]}], true);
+       });
+
+       $('#id_workers_table').on('click', '.row-extras-link', function(event) {
+           console.log("Got row-extras link");
+           var currentRow = $(this).closest('tr');
+           var rowData = $('#id_workers_table').dataTable().fnGetData(currentRow[0]);
+           // We have to show a modal with all the information about the workers
+       });
+
+       $('.table_worker_clear').on('click', function() {
+           var table = $(this).closest('table');
+           var newworkerlist = new Array();
+
+           var table = $(this).closest('table');
+           $('tbody input[type="checkbox"]', '#id_workers_table').each(function() {
+               if ($(this).is(':checked')) {
+                   var currentRow = $(this).closest('tr');
+                   var rowData = $('#id_workers_table').dataTable().fnGetData(currentRow[0]);
+                   newworkerlist.push({"id" : rowData[1]});
+               }
+           });
+
+           if (newworkerlist.length == 0) {
+               return;
+           }
+
+           installOrClearWorkers(newworkerlist, false);
+       });
+
+       $('#id_workers_table').on('click', '.row_clear', function(event) {
+           var currentRow = $(this).closest('tr');
+           var rowData = $('#id_workers_table').dataTable().fnGetData(currentRow[0]);
+
+           installOrClearWorkers([{"id" : rowData[1]}], false);
+       });
+
+       registerDataTable('#id_added_workers_table',
+                         '#',
+                         '#',
+                         '#',
+                         '',
+                         '.table_delete',
+                         {{worker_headers|safe}}, {{worker_headers|length}},
+                         0, 0, 0);
+
+       /* Check to see if we have to do live update.. */
+       checkAndStartTimer();
+
+       function checkAndStartTimer() {
+           var starttimer = false;
+           var timervalue = 30;
+           for (var i = 0; i < oTable[0].fnGetData().length; i++) {
+               var rowData = oTable[0].fnGetData(i);
+               var state = rowData[2];
+               // If any node has connecting or delete_in_progress, use a short timer.
+               if (state == 'connecting' || state == 'delete_in_progress') {
+                   timervalue = 5;
+                   starttimer = true;
+               }
+               else if (state != 'ready' && state != 'error') {
+                   starttimer = true;
+               }
+           }
+           if (starttimer) {
+               bdStartAjaxTimer(timervalue, 'timer', timerCallback);
+           }
+       }
+
+       function timerCallback() {
+           updateRowData = [];
+           for (var i = 0; i < oTable[0].fnGetData().length; i++) {
+               var rowData = oTable[0].fnGetData(i);
+               var state = rowData[2];
+               if (state != 'ready' && state != 'error') {
+                   updateRowData.push(rowData[1]);
+               }
+           }
+           if (updateRowData.length) {
+               updateStatus(updateRowData, 0);
+           }
+           else {
+               console.log("Nothing to update");
+           }
+       }
+
+       function updateStatus(rowData, i) {
+           if (i == rowData.length) {
+               // Scan through the table to see if we have to start the timer again.
+               checkAndStartTimer();
+               return;
+           }
+           var data = {
+               operation: 'get_worker',
+               id: rowData[i],
+           };
+           $.ajax({
+               url: '{% url "manageworker_view" %}',
+               method: 'post',
+               contentType: "application/json; charset=utf-8",
+               data: JSON.stringify(data),
+               csrfmiddlewaretoken: csrftoken,
+               headers: {'X-CSRFToken' : csrftoken},
+               success:
+                   function(worker) {
+                       var newData = '';
+
+                       if (worker.state == 'error') {
+                           console.log("Got an error state. Reloading the page %s ", worker);
+                           // This worker has moved to error state. Refresh the page
+                           document.location.href = '{% url "manageworker_view" %}';
+                           return false;
+                       }
+                       if (worker.state == 'installed') {
+                           console.log("One worker has moved to installed state. %s ", worker);
+                           document.location.href = '{% url "manageworker_view" %}';
+                           return false;
+                       }
+
+                       // Replace the global worker array with this worker object
+                       replaceWorker(worker);
+
+                       if (worker.state == 'added') {
+                           newData = '<div class="progress progress-warning progress-striped active" style="width:200px;" data-percent="Running bundle">' +
+                                     '<div class="bar" style="width: 100%"></div>' +
+                                     '</div>';
+                       }
+                       else if (worker.state == 'connecting') {
+                           newData = '<div class="progress progress-warning progress-info"  style="width:200px;" data-percent="Connecting">' +
+                                     '<div class="bar" style="width: 100%"></div>' +
+                                     '</div>';
+                       }
+                       else if (worker.state == 'ready') {
+                           newData = '<div class="progress progress-warning progress-info"  style="width:200px;" data-percent="Bundle setup completed">' +
+                                     '<div class="bar" style="width: 100%"></div>' +
+                                     '</div>';
+                       }
+                       else if (worker.state == 'install_scheduled') {
+                           newData = '<div class="progress progress-info progress-striped active"  style="width:200px;" data-percent="Install scheduled">' +
+                                     '<div class="bar" style="width: 100%"></div>' +
+                                     '</div>';
+                       }
+                       else if (worker.state == 'installing') {
+                           newData = '<div class="progress progress-success progress-striped active"  style="width:200px;" data-percent="Installing">' +
+                                     '<div class="bar" style="width: 100%"></div>' +
+                                     '</div>';
+                       }
+                       else if (worker.state == 'delete_in_progress') {
+                           newData = '<div class="progress progress-danger"  style="width:200px;" data-percent="Deleting">' +
+                                     '<div class="bar" style="width: 100%"></div>' +
+                                     '</div>';
+                       }
+
+                       // Check to see if there is extra info about the owkrers.
+                       var newName = '<span>' + worker.ip;
+
+                       if (!isEmpty(worker.sysinfo)) {
+                           if (worker.state == 'ready' && !isEmptyDisksFound(worker)) {
+                               newName = '<span class="red" data-rel="popover" data-placement="bottom" data-content="Error Details</br>Extra disk not found to install hdfs">' + worker.ip;
+                           }
+                       }
+
+                       if (worker.hostname != "") {
+                           newName += ' ( ' + worker.hostname + ' )';
+                       }
+    
+                       newName += '</span>';
+
+                       // Based on ip, get the row index for the table.
+                       for (var index = 0; index < oTable[0].fnGetData().length; index++) {
+                           var data = oTable[0].fnGetData(index);
+                           if (data[1] == worker._links.self.href) {
+                               oTable[0].fnUpdate(getCheckBox(worker), index, 0, false);
+                               oTable[0].fnUpdate(worker._links.self.href, index, 1, false);
+                               oTable[0].fnUpdate(worker.state, index, 2, false);
+                               oTable[0].fnUpdate(newName, index, 3, false);
+                               oTable[0].fnUpdate(newData, index, 4, false);
+                               oTable[0].fnUpdate(getButtons(worker), index, 5, false);
+                               break;
+                           }
+                       }
+                       updateStatus(rowData, i+1);
+                       return false;
+                   },
+               error:
+                   function(result) {
+                       console.log("Got an error while trying to get worker status %s", result);
+                       // Ok some worker has been added
+                       setTimeout("location.reload(true);", 30*1000);
+                       return false;
+                   }
+           });
+       }
+
+       // Update hidden field worker ip count
+       var count = 1;
+
+       $('#worker_add').on('click', function() {
+           // Make sure there is some data...
+           var data = '#worker_ip'+(count-1);
+           if ($(data).val() == '') {
+               // No data,, sorry can't add
+               return;
+           }
+
+           // Remove the button from the first one and add to the second list.
+           var div = document.getElementById("div_worker_add");
+           div.parentNode.removeChild(div);
+
+           var eleText = document.createElement("input");
+           eleText.setAttribute("type", "text");
+           eleText.setAttribute("name", 'worker_ip' + count);
+           eleText.setAttribute("id", 'worker_ip' + count);
+           eleText.setAttribute("class", "input-medium");
+           var name = 'worker_ip' + count;
+
+           count++;
+
+           $("#div_worker_ip").append('</br>');
+           $("#div_worker_ip").append(eleText);
+           $("#div_worker_ip").append(div);
+
+           $('#addworkers').validate();
+           $("input[id*="+name+"]").rules("add", "validateWorkers");
+       });
+
+       function isValidAddr(ipAddr) {
+           var ipFormat = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
+               ipRangeFormat = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\-(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
+               ipNumberFormat = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
+               ipNumberRangeFormat = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\-(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/   ;
+           var ipAddresses = ipAddr.split(",");
+           if(ipAddresses.length > 1){
+               for(var i=0; i<ipAddresses.length; i++){
+                   if (ipAddresses[i].match(ipFormat) || ipAddresses[i].match(ipRangeFormat) || ipAddresses[i].match(ipNumberFormat) || ipAddresses[i].match(ipNumberRangeFormat))  {
+                       return true;
+                   }
+                   else {
+                       return false;
+                   }
+               }
+           } else {
+               if (ipAddr.match(ipFormat) || ipAddr.match(ipRangeFormat)) {
+                   return true;
+               }
+               else {
+                   return false;
+               }
+           }
+       }
+
+       $.validator.addMethod("validateWorkers", function(value, element) {
+           if (!value) {
+               return true;
+           }
+           if (!isValidAddr(value)) {
+               return false;
+           }
+           if (value == controller_ip) {
+               return false;
+           }
+           return true;   
+       }, "Please enter a valid Worker IP Address");
+
+       $('#root_credential').change(function() {
+           $('.root-credentials').show();
+           $('#root_credential').prop("checked", true);
+
+//           $('.sshkeys-credentials').hide();
+           $('#ssh_key_credential').prop("checked", false);
+       });
+
+       $('#ssh_key_credential').change(function() {
+           $('.root-credentials').hide();
+           $('#root_credential').prop("checked", false);
+
+//           $('.sshkeys-credentials').show();
+           $('#ssh_key_credential').prop("checked", true);
+
+       });
+
+       $('#addworkers').validate({
+           errorElement: 'span',
+           errorClass: 'help-inline',
+           focusInvalid: false,
+           rules: {
+               worker_password : {
+                   required : {
+                       depends: function() {
+                           if ($('#root_credential').is(':checked')) {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+
+               /***
+               worker_ssh_key_path : {
+                   required : {
+                       depends: function() {
+                           if ($('#ssh_key_credential').is(':checked')) {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+               ***/
+
+               worker_ip0 : {
+                   validateWorkers: true,
+               }
+           },
+
+           messages: {
+               worker_password: "Enter the root password to access worker",
+//               worker_ssh_key_path: "Enter the location on the controller to access ssh key file."
+           },
+           errorPlacement: function (error, element) {
+               bdStopSpin();
+               if(element.is(':checkbox') || element.is(':radio')) {
+                   var controls = element.closest('.controls');
+                   if(controls.find(':checkbox,:radio').length > 1) controls.append(error);
+                   else error.insertAfter(element.nextAll('.lbl').eq(0));
+               }
+               else if(element.is('.chzn-select')) {
+                   error.insertAfter(element.nextAll('[class*="chzn-container"]').eq(0));
+               }
+               else if (element.next() && element.next().is('#div_worker_add')) {
+                   element.next().after(error);
+               }
+               else error.insertAfter(element);
+           },
+
+           highlight: function (e) {
+               $(e).closest('.control-group').removeClass('info').addClass('error');
+           },
+
+           success: function (e) {
+               $(e).closest('.control-group').removeClass('error').addClass('info');
+               $(e).remove();
+           },
+             
+           submitHandler: function (form) {
+               bdsFormSubmit(form, "Failed to add workers", '{% url "manageworker_view" %}');
+           },
+       });
+   });
+</script>
+{% endblock %}

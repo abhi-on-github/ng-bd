@@ -1,0 +1,26 @@
+{% block table_header %}
+{% load url from future %}
+<thead>
+   <tr>
+      {% for header in headers %}
+         {% if header.attrs == "hidden" %}
+            <th style="display:none">{{ header.name }}</th>
+         {% elif header.attrs == "checkbox" %}
+            <th class="center">
+               <label><input type="checkbox" /><span class="lbl"></span></label>
+            </th>
+         {% elif header.attrs == "expand" %}
+            <th class="center"
+                <button class='btn btn-mini green btn-info'>
+                  <i class='icon-folder-close'></i>
+                </button>
+            </th>
+         {% elif header.attrs == "actions" %}
+            <th>Actions</th>
+         {% else %}
+            <th>{{ header.name }}</th>
+         {% endif %}
+      {% endfor %}
+   </tr>
+</thead>
+{% endblock %}

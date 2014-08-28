@@ -1,0 +1,106 @@
+{% extends 'modal_base.html' %}
+{% load url from future %}
+{% block modal_body %}
+<form class="bds-form bds-modal-form form-horizontal" id="usersettings" enctype="multipart/form-data" action='{% url "usersettings_view" %}' method="POST">{% csrf_token %}
+   <input id="fake_user_name" name="fake_user[name]" style="position:absolute; top:-100px;" type="text" value="Dummy Autofill">
+   <input id="fake_password" name="fake_pass[name]" style="position:absolute; top:-100px;" type="password" value="Dummy Autofile">
+
+   {% if request.session.user_id == user_id %}
+   <div class="control-group">
+      <label class="control-label">Current Password </label>
+      <div class="controls">
+         <input type="password" name="oldPassword" id="oldPassword" class="input-xlarge" placeholder="Old Password" />
+      </div>
+   </div>
+   {% endif %}
+   <div class="control-group">
+      <label class="control-label">New Password </label>
+      <div class="controls">
+         <input type="password" name="password" id="password" class="input-xlarge" placeholder="Password" />
+      </div>
+   </div>
+   <div class="control-group">
+      <label class="control-label">Confirm Password </label>
+      <div class="controls">
+         <input type="password" name="confirmPassword" id="confirmPassword" class="input-xlarge" placeholder="Confirm Password" />
+      </div>
+   </div>
+   <input type="text" name="user_id" id="user_id" value="{{ user_id }}" style="visibility:hidden"/>
+   <input type="password" name="dummy" id="dummy" style="visibility:hidden"/>
+</form>
+{% endblock %}
+
+{% block page_script %}
+<script id="source" language="javascript" type="text/javascript">
+   $(document).ready(function () {
+
+       var same_user_id = false;
+       if ('{{request.session.user_id}}' == '{{user_id}}') {
+           same_user_id = true;
+       }
+
+       //initialize to set focus at first field of form
+       window.setTimeout(function(){
+          $('form#usersettings *:input[type!=hidden]:first').focus();
+       }, 700);
+       
+
+       $('#usersettings').validate({
+           errorElement: 'span',
+           errorClass: 'help-inline',
+           focusInvalid: false,
+           rules: {
+               oldPassword: {
+                   required: true,
+               },
+               password: {
+                   required: true,
+               },
+               confirmPassword: {
+                   equalTo: '#password',
+                   required: true,
+               }
+           },
+           messages: {
+               oldPassword: 'Please provide the current password',
+
+               password: 'Please provide a new password',
+               confirmPassword: {
+                   required: "Please provide a new password.",
+                   equalTo: "Passwords do not match",
+               },
+           },
+           invalidHandler:  function (event, validator) {
+               $('.alert-error', $('#usersettings')).show();
+           },
+
+           highlight: function (e) {
+               $(e).closest('.control-group').removeClass('info').addClass('error');
+           },
+
+           success: function (e) {
+               $(e).closest('.control-group').removeClass('error').addClass('info');
+               $(e).remove();
+           },
+             
+           errorPlacement: function (error, element) {
+               if(element.is(':checkbox') || element.is(':radio')) {
+                   var controls = element.closest('.controls');
+                   if(controls.find(':checkbox,:radio').length > 1) controls.append(error);
+                   else error.insertAfter(element.nextAll('.lbl').eq(0));
+               }
+               else error.insertAfter(element);
+           },
+
+           submitHandler: function (form) {
+              if (same_user_id) {
+                  bdsFormSubmit(form, "Failed to update password", '{% url "logout_view" %}');
+              }
+              else {
+                  bdsFormSubmit(form, "Failed to reset password", '');
+              }
+           },
+       });
+   });
+</script>
+{% endblock %}

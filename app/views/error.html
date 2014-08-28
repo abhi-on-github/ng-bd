@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% load url from future %}
+{% block main_content %}
+<div class="row-fluid">
+	<div class="error-container bluedata-error-container">
+    	<div class='error-title-wrapper'>
+    		<div class='error-title-icon'>
+    			<i class='icon-warning-sign'></i>
+    		</div>
+    		<div class='error-title-message'>
+    			<b>Exception</b>
+    			<span style='display:none;'>An unknown error occurred</span>
+    		</div>
+    		<div class='error-title-support'>
+    			<a href='#' style='display:none;'>Contact Technical Support</a>
+    		</div>
+    	</div>
+    	<div class='error-content-wrapper'>
+    		<div class='error-content-title'>Details of this error...</div>
+    		<div class='error-content-info'>
+                {{error_info}}
+    		</div>	
+    	</div>
+   	</div>
+</div>
+{% endblock %}
+
+{% block page_script %}
+{% endblock %}

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+{% load url from future %}
+<html lang="en">
+  <head>
+    <meta content='text/html; charset=utf-8' http-equiv='Content-Type' />
+    <title>{{ title }}</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="description" content="" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    {% block css %}
+       {% include "_stylesheets.html" %}
+    {% endblock %}
+  </head>
+  <body class='login-page-content'>
+    <div class='bluedata-logo'></div>
+    <div class="container-fluid">
+      <div class="row-fluid">
+        <div class='span12'>
+          <div class='form-container'>
+            <form method="POST" action='{{view}}' id='loginForm' enctype='multipart/form-data'>{% csrf_token %}
+              <div class='form-field-container'>
+                <div class='form-field'>
+                  <input type='text' id='id_username' name='username' placeholder='Username' />
+                </div>
+                <div class='form-field'>
+                  <input type='password' id='id_password' name='password' value='{{password}}' placeholder='Password' />
+                </div>
+              </div>
+              <div class='form-process-bar'>
+                 <span>...please wait</span> 
+              </div>
+              <div class='form-error-bar'>
+                 <span>Your username and/or password were incorrect.</span> 
+              </div>
+              <div class='form-action-container'> 
+                <button type='submit' class='primary-button' id='submitLogin'>Login</button>
+                <a href='#' class='action-link' style='display:none;'>Forgot Password?</a>
+              </div>
+              <input type="hidden" id='next' name="next" value="{{ next }}" />
+              <input type="hidden" id="id_region" name="region" value="{{ auth_url }}" />
+              <input type="hidden" id="id_tenant" name="tenant" value="{{ tenant }}" />
+              <input type='hidden' id='csrf_token' name='csrf_token' value='{{ csrf_token }}' />
+            </form>
+            {% if install_failed  == 'Yes'%}
+            <div class="toolbar clearfix"> 
+              <div>
+                <a href='{% url "admininstall_view" %}' class="user-signup-link">
+                  Admin Install
+                  <i class="icon-arrow-right"></i>
+                </a>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+          <div class='app-info'>
+            <b>BlueData EPIC</b>
+            <span>&copy; BlueData Inc 2014</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <script src="/bdswebui/static/bdswebui/js/jquery-1.9.1.min.js" type="text/javascript"></script>
+    <script src="/bdswebui/static/bdswebui/js/angular.js" type="text/javascript"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.22/angular.js" type="text/javascript"></script>
+
+    <script type="text/javascript">
+       function show_box(id) {
+          $('.widget-box.visible').removeClass('visible');
+          $('#'+id).addClass('visible');
+       }
+      
+       $(document).ready(function(){
+          //set the focus at first field on page loaded
+          $('form:first *:input[type!=hidden]:first').focus();
+        
+          var csrfToken = $('#csrf_token').val();  
+          //handle the onclick of login button
+          $('#submitLogin').click(function(event){
+              //prevent the default behavior of the button
+              event.preventDefault();
+              //show the process bar
+              $('.form-error-bar').removeClass('active');
+              $('.form-process-bar').addClass('active'); 
+              //and then, send the ajax call to backend
+              var formData = new FormData($('#loginForm').get(0));
+              $.ajax({ 
+                  url: $('#loginForm').attr('action'),
+                  type: 'post',
+                  data: formData, //fetching formdata from native html form element
+                  mimetype: 'multipart/form-data',
+                  contentType: false,
+                  processData: false,
+                  csrfmiddlewaretoken: csrfToken,
+                  headers: { 'X-CSRFToken' : csrfToken },
+                  success: function(response) {
+                      if (response.status_code == 408) {
+                          window.location.href = response.redirect;
+                      }
+                      else {
+                          //hide the process bar
+                          $('.form-process-bar').removeClass('active');
+                          window.location.href = $('#next').val();
+                      }
+                  },
+                  error: function(response) {
+                      //hide the process bar and show the error bar
+                      $('.form-process-bar').removeClass('active');
+                      $('.form-error-bar').addClass('active');
+                  } 
+              });
+          });
+       });
+    </script>
+  </body>
+</html>

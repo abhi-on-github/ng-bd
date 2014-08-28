@@ -1,0 +1,771 @@
+{% extends 'base.html' %}
+{% load url from future %}
+{% block main_content %}
+<div class="span12" id='clusterPage'>
+   <div class="tabbable">
+      <ul class="nav nav-tabs padding-12 tab-color-blue ">
+
+         <li id="nodes_info_tab" class="active">
+            <a data-toggle="tab" href="#nodes-info-tab">
+               Node(s) Info
+            </a>
+         </li>
+
+         <li id="jobs_info_tab">
+            <a data-toggle="tab" href="#jobs-info-tab">
+               Job(s) Info
+            </a>
+         </li>
+
+         <li id="charts_tab">
+            <a data-toggle="tab" href="#charts-tab">
+               Charts
+            </a>
+         </li>
+
+         <li id="service_status">
+            <a data-toggle="tab" href="#service_status">
+               Service Status
+            </a>
+         </li>
+
+          <div id="nav-search" class="pull-right">
+            <a style='display:inline; color:#0000FF; text-decoration:underline;' href='{% url "clusterextras_view" %}?op=clusterfs&uuid={{ cluster_data.uuid }}' >Cluster FS Browser</a>
+            <span id="cluster-status">
+               {% if cluster_data.status == 'ready' %}
+               <span class="center label label-success" style="width:60px;">ready</span>
+               {% elif cluster_data.status == 'updating' %}
+               <span data-rel="popover" data-placement="left" data-content="{{cluster_data.status_message}}">
+                  <span class="center label label-info" style="width:60px;">{{cluster_data.status}}</span>
+               </span>
+               {% elif cluster_data.status == 'delete_in_progress' %}
+               <span class="center label label-important" style="width:60px;">deleting</span>
+               {% else %}
+               <span style="width:60px; cursor:pointer;" class="center label label-important error-message-modal" data-target="#errorMessageModal" data-toggle="modal" data-title='{{ cluster_data.status_message }}' data-content='{{ row.error_info }}'>error</span>
+               {% endif %}
+            </span>
+         </div>
+      </ul>
+
+      <div class="tab-content">
+
+         <div id="nodes-info-tab" class="tab-pane in active">
+            
+            {% if cluster_data.cluster_type == "HBase" %}
+            <h3 class="header smaller lighter blue">Configuration Information for Cluster</h3> 
+               <a id='clientConfig' style='display:inline; color:#0000FF; text-decoration:underline;' href='#' data-target='#configInfoModal' data-toggle='modal' data-client_config_xml='{{ cluster_data.client_config_xml }}' data-client_config_java='{{ cluster_data.client_config_java }}'>HBase Client Configuration</a>
+            {% endif %}
+
+            <h3 class="header smaller lighter blue">Node List</h3>
+
+            <table id="node_list" class="table table-striped table-bordered table-hover bd-table">
+               {% include 'table_headers.html' with headers=node_list_headers %}
+               <tbody>
+               </tbody>
+            </table>
+
+            {% if cluster_data.config_nondefaults %}
+            <h3 class="header lighter smaller blue">Cluster Non-default Params</h3>
+            <div class="widget-main padding-6 no-padding-left no-padding-right">
+               {% for param in cluster_data.config_nondefaults %}
+               {{param.property_name}}:&nbsp;&nbsp;{{param.value}}</br>
+            {% endfor %}
+            </div>
+            {% endif %}
+         </div>
+
+         <div id="jobs-info-tab" class="tab-pane">
+            <h3 class="header smaller lighter blue">Running/Completed Jobs</h3>
+
+            <table id="jobs_table" class="table table-striped table-bordered table-hover bd-table" >
+               {% include 'table_headers.html' with headers=job_headers %}
+               <tbody>
+                  {% for row in running_jobs %}
+                  <tr>
+                     <td style="display:none">{{ row.uuid }}</td>
+                     <td style="display:none">{{ row.status }}</td>
+
+                     {% if row.output_url == '' or row.status == 'delete_in_progress' %}
+                     <td><span>{{ row.job_name }}</span></td>
+                     {% else %}
+                     <td><a class="row-link">{{ row.job_name }}</a></td>
+                     {% endif %}
+                     <td>
+                        Job Type: {{ row.job_type}}</br>
+                     App Name: {{ row.app_name}}</br>
+                     </td>
+
+                     <td>{{ row.start_time }}</td>
+
+                     <td></td>
+
+                     <td>
+                        {% if row.status == 'created' %}
+                        <span class="center label label-info" style="width:60px;">created</span>
+                        {% elif row.status == 'starting' %}
+                        <span class="center label label-info" style="width:60px;">starting</span>
+                        {% elif row.status == 'running' %}
+                        <span data-rel="popover" data-placement="left" style="width:60px;" data-content="Mapper {{row.map_percent}} % </br> Reducer {{row.reduce_percent}} % ">
+                           <span class="center label label-info" style="width:60px;">{{row.status}}</span>
+                        </span>
+                        {% endif %}
+                     </td>
+
+                  </tr>
+                  {% endfor %}
+
+                  {% for row in finished_jobs %}
+                  <tr>
+                     <td style="display:none">{{ row.uuid }}</td>
+                     <td style="display:none">{{ row.status }}</td>
+                     {% if row.output_url == '' or row.status == 'delete_in_progress' %}
+                     <td><span>{{ row.job_name }}</span></td>
+                     {% else %}
+                     <td><a class="row-link">{{ row.job_name }}</a></td>
+                     {% endif %}
+                     <td>
+                        Job Type: {{ row.job_type}}</br>
+                     App Name: {{ row.app_name}}</br>
+                     </td>
+
+                     <td>{{ row.start_time }}</td>
+
+                     <td>{{ row.update_ts }}</td>
+
+                     <td class="status" id="status">
+                        {% if row.status == 'complete' %}
+                        <span class="center label label-success"  style="width:60px;">complete</span>
+                        {% else %}
+                        <span style="width:60px; cursor:pointer;" class="center label label-important error-message-modal" data-target="#errorMessageModal" data-toggle="modal" data-title='{{ row.status_message }}' data-content='{{ row.error_info }}'>error</span>
+                        {% endif %}
+                     </td>
+
+                  </tr>
+                  {% endfor %}
+               </tbody>
+            </table>
+         </div>
+
+         <div id="charts-tab" class="tab-pane">
+            <div class="row-fluid">
+               <div class="span12 infobox-container">
+                  <div class="center infobox">
+                     <div id="loadgauge"></div>
+                  </div>
+
+                  <div class="center infobox">
+                     <div id="cpugauge"></div>
+                  </div>
+
+                  <div class="center infobox">
+                     <div id="memgauge"></div>
+                  </div>
+
+                  <div class="center infobox">
+                     <div id="netgauge"></div>
+                  </div>
+               </div>
+            </div>
+            <div class="space-24"></div>
+
+            <div class="row-fluid">
+               <div class="span12" style="height:400px;">
+                  <div class="tabbable no-border">
+                     <ul class="nav nav-tabs padding-12 no-border">
+                        <div id="nav-search" class="pull-right">
+                           <span class="pull-right">
+                              <button id="period-title" class="btn btn-mini btn-success" data-toggle="dropdown">
+                                 Last Hour
+                                 <i class="icon-angle-down icon-on-right"></i>
+                              </button>
+
+                              <ul class="dropdown-menu dropdown-yellow pull-right dropdown-caret dropdown-close">
+                                 <li>
+                                    <a href="#" onclick="return stats_change('period-click', 'hour', 'Last Hour');">Last Hour</a>
+                                 </li>
+
+                                 <li>
+                                    <a href="#" onclick="return stats_change('period-click', '2hr', '2 Hours');">2 Hours</a>
+                                 </li>
+
+                                 <li>
+                                    <a href="#" onclick="return stats_change('period-click', '4hr', '4 Hours');">4 Hours</a>
+                                 </li>
+
+                                 <li>
+                                    <a href="#" onclick="return stats_change('period-click', 'day', 'Day');">Day</a>
+                                 </li>
+
+                                 <li>
+                                    <a href="#" onclick="return stats_change('period-click', 'week', 'Week');">Week</a>
+                                 </li>
+                                 <li>
+                                    <a href="#" onclick="return stats_change('period-click', 'month', 'Month');">Month</a>
+                                 </li>
+                                 <li>
+                                    <a href="#" onclick="return stats_change('period-click', 'year', 'Year');">Year</a>
+                                 </li>
+                              </ul>
+                           </span>
+                        </div>
+
+                        <li id="load_tab" class="active">
+                           <a data-toggle="tab" href="#load-chart-tab">
+                              Load Average
+                           </a>
+                        </li>
+                        <li id="cpu_tab">
+                           <a data-toggle="tab" href="#cpu-chart-tab">
+                              CPU
+                           </a>
+                        </li>
+                        <li id="mem_tab">
+                           <a data-toggle="tab" href="#mem-chart-tab">
+                              Memory
+                           </a>
+                        </li>
+                        <li id="net_tab">
+                           <a data-toggle="tab" href="#net-chart-tab">
+                              Network
+                           </a>
+                        </li>
+                     </ul>
+
+                     <div class="tab-content no-border">
+                        <div id="load-chart-tab" class="tab-pane in active" >
+                           <div class="row-fluid">
+                              <div id="loadchart"></div>
+                           </div>
+                        </div>
+                        <div id="cpu-chart-tab" class="tab-pane">
+                           <div class="row-fluid">
+                              <div id="cpuchart"></div>
+                           </div>
+                        </div>
+                        <div id="mem-chart-tab" class="tab-pane">
+                           <div class="row-fluid">
+                              <div id="memchart"></div>
+                           </div>
+                        </div>
+                        <div id="net-chart-tab" class="tab-pane">
+                           <div class="row-fluid">
+                              <div id="netchart"></div>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+         
+      </div>
+   </div>
+</div>
+
+<!-- Cluster Client Config Information dialog -->
+<div id="configInfoModal" class="modal hide fade" style='display:none;'>
+   <div class="modal-header blue">
+      <h5 style='display:inline; margin-left:7px;'>Client Config Information</h5>
+      <a href="#" class="close" data-dismiss="modal">&times;</a>
+   </div>
+   <div class="modal-body">
+   </div>
+</div>
+
+<!-- Error message dialog for cluster/job -->
+<div id="errorMessageModal" class="modal hide fade" style='display:none;'>
+   <div class="modal-header blue">
+      <i class='icon-warning-sign orange'></i><h5 style='display:inline; margin-left:7px;'></h5>
+      <a href="#" class="close" data-dismiss="modal">&times;</a>
+   </div>
+   <div class="modal-body">
+   </div>
+</div>
+
+{% include 'jobdetails.html' %}
+
+{% endblock %}
+
+{% block page_script %}
+<script src="/bdswebui/static/bdswebui/js/ansi_html.js"  type="text/javascript"></script>
+<script src="/bdswebui/static/bdswebui/js/rickshaw.min.js"  type="text/javascript"></script>
+<script id="source" language="javascript" type="text/javascript">
+   $('[data-rel=tooltip]').tooltip();
+
+   $('[data-rel=popover]').popover({html:true});
+	
+	//update modal content on toggle from error message
+   $(document).on('click', '.error-message-modal', function(e) {
+       $('#errorMessageModal .modal-header h5').html($(this).data('title'));
+       $('#errorMessageModal .modal-body').html($(this).data('content'));
+   });
+
+   $('#jobs_table').on('click', '.row-link', function(event) {
+       bdStopAjaxTimer('timer');
+       var currentRow = $(this).closest('tr');
+       var rowData = $('#jobs_table').dataTable().fnGetData(currentRow[0]);
+       $('#jobDetailsModal .modal-header .job-id').html(rowData[0]);
+       $('#jobDetailsModal .modal-header h3').html($(rowData[2]).html() + " Output");
+
+       var status = "";
+       if (rowData[1] == "running") {
+           status = '<span class="center label label-info" style="width:60px;">running</span>';
+       }
+       else if (rowData[1] == "complete") {
+           status = '<span class="center label label-success" style="width:60px;">complete</span>';
+       }
+       else if (rowData[1] == "error") {
+           status = '<span class="center label label-important" style="width:60px;">error</span>';
+       }
+       else {
+           return;
+       }
+
+       $('#mappergauge').empty();
+       $('#reducergauge').empty();
+
+       createGauge("mapper", "Mapper %", 'mappergauge', 150, 0, 100, 'false', '#109618');
+       createGauge("reducer", "Reducer %", 'reducergauge', 150, 0, 100, 'false', '#FF9900');
+
+       $('#jobDetailsModal .modal-body #log_data').html("Loading output. Please wait");
+       $('#jobDetailsModal .modal-footer #modal-close-button').text('Hide');
+
+       $('#jobDetailsModal .modal-header #job-status').html(status);
+       $('#jobDetailsModal').modal('show');
+       bdStartAjaxTimer(1, 'job_details_timer', jobDetailsUpdate);
+   });
+
+   $('#jobDetailsModal').on('hidden', function () {
+       // Stop the timer..
+       bdStopAjaxTimer('job_details_timer');
+       bdStopAjaxTimer('timer');
+
+       timerCallback();
+   })
+
+   function jobDetailsUpdate() {
+       var job_id = $('#jobDetailsModal .modal-header .job-id').html();
+       var data = {
+           operation: 'get_status_and_output',
+           id: job_id,
+       };
+       $.ajax({
+           url: '{% url "managejob_view" %}',
+           method: 'post',
+           contentType: "application/json; charset=utf-8",
+           data: JSON.stringify(data),
+           csrfmiddlewaretoken: csrftoken,
+           headers: {'X-CSRFToken' : csrftoken},
+           success: function(result) {
+               job_id = $('#jobDetailsModal .modal-header .job-id').html();
+               if (job_id != result.uuid) {
+                   // Different one, just skip.
+                   return;
+               }
+
+               var str = result.job_output_data.replace(/\n/g, "<br />");
+               if (str == "") {
+                  $('#jobDetailsModal .modal-body #log_data').html("Loading output. Please wait");
+               }
+               else {
+                   var html = ansi_up.ansi_to_html(str);
+                  $('#jobDetailsModal .modal-body #log_data').html(html);
+               }
+               $('#jobDetailsModal .modal-body #log_data_bottom').get(0).scrollIntoView();
+
+               if (result.status == "running") {
+                   bdStartAjaxTimer(5, 'job_details_timer', jobDetailsUpdate);
+               }
+               else {
+                   // Change the button to close to indicate that the job has completed..
+                   $('#jobDetailsModal .modal-footer #modal-close-button').text('Close');
+               }
+               var status = "";
+               if (result.status == "running") {
+                   status = '<span class="center label label-info" style="width:60px;">running</span>';
+               }
+               else if (result.status == "complete") {
+                   status = '<span class="center label label-success" style="width:60px;">complete</span>';
+               }
+               else if (result.status == "error") {
+                   status = '<span class="center label label-important" style="width:60px;">error</span>';
+               }
+               else {
+                   return;
+               }
+               $('#jobDetailsModal .modal-header #job-status').html(status);
+           },
+           error: function(result) {
+               // Just hide the modal here.. May be the job was deleted..
+               console.log("Got an error when getting status and output for the job");
+               $('#jobDetailsModal').modal('hide');
+           }
+       });
+   }
+
+   var cluster_data = {{ json_cluster_data|safe }};
+   var updateRowData = new Array();
+
+   function checkAndStartTimer() {
+       for (var i = 0; i < oTable[1].fnGetData().length; i++) {
+           var rowData = oTable[1].fnGetData(i);
+           status = rowData[1];
+           if (status == "running" || status == "starting" || status == "created") {
+               // We have to start the timer...
+               bdStartAjaxTimer(15, 'timer', timerCallback);
+               break;
+           }
+       }
+   }
+
+   function updateStatus(rowData, i) {
+       if (i == rowData.length) {
+           // Scan through the table to see if we have to start the timer again.
+           checkAndStartTimer();
+           return;
+       }
+
+       row = rowData[i].data;
+       index = rowData[i].index;
+
+       status = row[1];
+       var data = {
+           operation: 'get_status',
+           id: row[0],
+       };
+       $.ajax({
+           url: '{% url "managejob_view" %}',
+           method: 'post',
+           contentType: "application/json; charset=utf-8",
+           data: JSON.stringify(data),
+           csrfmiddlewaretoken: csrftoken,
+           headers: {'X-CSRFToken' : csrftoken},
+           success: function(result) {
+               var newValue = row[6];
+               var newStatus = row[1];
+               switch (result.status) {
+                   case 'created':
+                       newValue = '<span class="center label label-info" style="width:60px;">created</span>';
+                       newStatus = 'created';
+                       break;
+                   case 'starting':
+                       newValue = '<span class="center label label-info" style="width:60px;">starting</span>';
+                       newStatus = 'starting';
+                       break;
+                   case 'running':
+                       newValue = '<span data-rel="popover" data-placement="left" data-content="Mapper '+ result.map_percent + ' %</br>Reducer ' + result.reduce_percent + ' %"' +
+                                  '<span class="center label label-info" style="width:60px;">' + result.status + '</span>' +
+                                  '</span>';
+                       newStatus = 'running';
+                       break;
+                   case 'complete':
+                       newValue = '<span class="center label label-success" style="width:60px;">complete</span>';
+                       newStatus = 'complete';
+                       oTable[1].fnUpdate(getDateTimeFromTimestamp(result['update_ts']), index, 5, false);
+                       break;
+                   case 'error':
+                       newValue = '<span class="center label label-important error-message-modal" data-target="#errorMessageModal"';
+                       newValue += ' data-toggle="modal" data-title="' + result.status_message + '"';
+                       newValue += " data-content='" + result.error_info + "'";
+                       newValue += ' style="width:60px; cursor:pointer;">error</span>';
+                       newStatus = 'error';
+                       oTable[1].fnUpdate(getDateTimeFromTimestamp(result['update_ts']), index, 5, false);
+                       break;
+               }
+
+               // job_name column should be clickable only if the job is in a running state
+               if (result.output_url && result.status != 'delete_in_progress') {
+                   newName = '<a class="row-link">' + result.job_name + '</a>';
+               }
+               else {
+                   newName = '<span>' + result.job_name + '</span>';
+               }
+               oTable[1].fnUpdate(newName, index, 2, false);
+
+               oTable[1].fnUpdate(newValue, index, 6, false);
+               oTable[1].fnUpdate(newStatus, index, 1, false);
+
+               updateStatus(rowData, i+1);
+               return false;
+           },
+           error: function() {
+               console.log("Got an error while trying to get job status");
+               location.reload(true);
+               return false;
+           }
+       });
+   }
+
+   function timerCallback() {
+       updateRowData = [];
+       for (var i = 0; i < oTable[1].fnGetData().length; i++) {
+           var rowData = oTable[1].fnGetData(i);  
+           status = rowData[1];
+           if (status == "running" || status == "created") {
+               updateRowData.push({'data' : rowData, 'index' : i});
+           }
+       }
+       if (updateRowData.length) {
+           updateStatus(updateRowData, 0);
+       }
+   }
+
+   function clusterTimerCallback() {
+       var data = {
+           operation: 'get_status',
+           id: cluster_data.uuid,
+       };
+
+       $.ajax({
+           url:  '{% url "managecluster_view" %}',
+           method: 'post',
+           contentType: "application/json; charset=utf-8",
+           data: JSON.stringify(data),
+           csrfmiddlewaretoken: csrftoken,
+           headers: {'X-CSRFToken' : csrftoken},
+           success: function(result) {
+               // Based on the status, also set the status of the cluster
+               var newValue = "";
+               switch (result.status) {
+                   case 'updating':
+                       newValue = '<span data-rel="popover" data-placement="left" data-content="'+ result.status_message + '"' +
+                                  '<span class="center label label-info" style="width:60px;">' + result.status + '</span>' +
+                                  '</span>';
+                       break;
+                   case 'delete_in_progress':
+                       newValue = '<span class="center label label-important" style="width:60px;">deleting</span>';
+                       break;
+                   case 'ready':
+                       newValue = '<span class="center label label-success" style="width:60px;">ready</span>';
+                       break;
+                   case 'error':
+                       newValue = '<span class="center label label-important error-message-modal" data-target="#errorMessageModal"';
+                       newValue += ' data-toggle="modal" data-title="' + result.status_message + '"';
+                       newValue += " data-content='" + result.error_info + "'";
+                       newValue += ' style="width:60px; cursor:pointer;">error</span>';
+                       break;
+               }
+               $('#cluster-status').html(newValue);
+               
+               // Also fetch the node list here, we may have new ones..
+               if (result.status == 'updating') {
+                   var data = {
+                       operation: 'get_node_list',
+                       id: cluster_data.uuid,
+                   };
+
+                   $.ajax({
+                       url:  '{% url "managecluster_view" %}',
+                       method: 'post',
+                       contentType: "application/json; charset=utf-8",
+                       data: JSON.stringify(data),
+                       csrfmiddlewaretoken: csrftoken,
+                       headers: {'X-CSRFToken' : csrftoken},
+                       success: function(vnode_list) {
+                           populateNodeLists(vnode_list);
+                       },
+                       error: function() {
+                           console.log("Got an error while trying to get cluster status");
+                       }
+                   });
+               }
+               bdStartAjaxTimer(15, 'cluster_timer', clusterTimerCallback);
+           },
+           error: function() {
+               console.log("Got an error while trying to get cluster status");
+               // Got back to cluster details page.
+               setTimeout(function() { document.location.href = '{% url "managecluster_view" %}'}, 5000);
+               return false;
+           }
+       });
+   }
+
+   registerDataTable('#node_list', '#', '#', '#', '', '.table_delete', {{node_list_headers|safe}}, {{node_list_headers|length}}, 0, 0);
+   var node_list = {{ node_list|safe }};
+   var vm_private_ip_support = '{{ vm_private_ip_support|safe }}';
+
+   function populateNodeLists() {
+       var entriesAdded = 0;
+       oTable[0].fnClearTable();
+       for (var i in node_list) {
+           /***
+           if ($("#" + node_list[i].name).length) {
+               console.log("Skipping the node.. already present %s", node_list[i].name);
+               continue;
+           }
+           ***/
+           var process_list = "";
+           for (var j in node_list[i].process_list) {
+               list = node_list[i].process_list[j];
+               process_list += '<a href="' + list[1] + '" class="row-link" target="_blank" style="display:inline">' + list[0] + '</a>';
+               if (j < node_list[i].process_list.length - 1) {
+                   process_list += ', ';
+               }
+           }
+
+           var rowPos;
+           if (vm_private_ip_support == "True") {
+               rowPos = oTable[0].fnAddData([node_list[i].name, node_list[i].role, node_list[i].public_ip, node_list[i].private_ip, process_list], false);
+           }
+           else {
+               rowPos = oTable[0].fnAddData([node_list[i].name, node_list[i].role, node_list[i].public_ip, process_list], false);
+           }
+           entriesAdded += 1;
+               
+           var addedElement = oTable[0].fnGetNodes(rowPos[0]);
+
+           $(addedElement).attr('id', node_list[i].name);
+       }
+       oTable[0].fnDraw();
+   }
+   
+   populateNodeLists(node_list);
+   registerDataTable('#jobs_table',
+                     '#',
+                     '{% url "jobextras_view" %}?uuid=',
+                     '#',
+                     '',
+                     '.table_delete',
+                     {{job_headers|safe}}, {{job_headers|length}}, 0, 2);
+
+   for (var i = 0; i < oTable[1].fnGetData().length; i++) {
+       var rowData = oTable[1].fnGetData(i);
+
+       // Update start time with the actual date
+       oTable[1].fnUpdate(getDateTimeFromTimestamp(rowData[4]), i, 4, false);
+
+       if (rowData[5] != '') {
+           oTable[1].fnUpdate(getDateTimeFromTimestamp(rowData[5]), i, 5, false);
+       }
+   }
+
+   /* Check to see if we have to do live update.. */
+   checkAndStartTimer();
+
+   bdStartAjaxTimer(15, 'cluster_timer', clusterTimerCallback);
+
+   //show the client configuration information for Cluster
+   $('#clientConfig').click(function(){
+      var config_info = "<font>hbase-site.xml </font><br><textarea>"+ formatXml($(this).data('client_config_xml')) +"</textarea><br><font>ZooKeeper Configuration in Java</font><br><div>" + $(this).data('client_config_java') + "</div>";
+      $('#configInfoModal .modal-body').html(config_info);
+   });
+
+   var colors = [];
+   var graphs = [];
+   var urls = [];
+   var curr_data = "hour";
+   var curr_title = "Last Hour";
+   var hadoop_distro = cluster_data.hadoop_distro;
+   var url_prefix = 'http://' + '{{master_ip}}' + '/ganglia/graph.php';
+   var url_suffix = '';
+   var total_cores = 0;
+   var total_memory = 0;
+   var master_flavor_memory = cluster_data.master_flavor.memory/1024;
+   var slave_flavor_memory = cluster_data.slave_flavor.memory/1024;
+
+   total_cores = cluster_data.master_flavor.cores;
+
+   var num_slaves = node_list.length-1;
+
+   total_memory = master_flavor_memory + slave_flavor_memory*num_slaves;
+   total_cores += cluster_data.slave_flavor.cores*num_slaves;
+
+   if (hadoop_distro.indexOf("Cloudera") != -1) {
+       url_suffix = '&c=Cloudera';
+   }
+   else if (hadoop_distro == 'Intel IDH 3.0.2') {
+       url_suffix = '&c=Default';
+   }
+   else {
+       url_suffix = '&c=HDPSlaves';
+   }
+   url_suffix += '&m=load_one&s=by+name&mc=2&json=1';
+
+   function stats_change(from, data, title) {
+       curr_data = data;
+       curr_title = title;
+       reloadChart();
+   }
+   colors['load'] = '#bae4e2';
+   colors['cpu'] = '#ffdfb2';
+   colors['mem'] = '#acd7e6';
+   colors['net'] = '#e4c6e7';
+
+   initializeURLS();
+
+   initializeGraphs();
+
+   function initializeURLS() {
+       urls['load'] = url_prefix + '?r=hour' + '&g=load_report' + url_suffix;
+       urls['cpu'] = url_prefix + '?r=hour' + '&g=cpu_report' + url_suffix;
+       urls['mem'] = url_prefix + '?r=hour' + '&g=mem_report' + url_suffix;
+       urls['net'] = url_prefix + '?r=hour' + '&g=network_report' + url_suffix;
+   }
+
+   function initializeGraphs() {
+       var width = $('.tab-content').outerWidth()-50;
+       height = 300;
+       graphs['load'] = new bdsGraph();
+       graphs['cpu'] = new bdsGraph();
+       graphs['mem'] = new bdsGraph();
+       graphs['net'] = new bdsGraph();
+
+       graphs['load'].initialize(width, height, "load", "#loadchart", '1-min', 'stack', colors['load'], urls['load'], updateLoadChart, curr_data);
+       graphs['cpu'].initialize(width, height, "cpu", "#cpuchart", 'User', 'stack', colors['cpu'], urls['cpu'], updateCPUChart, curr_data);
+       graphs['mem'].initialize(width, height, "mem", "#memchart", 'Use', 'stack', colors['mem'], urls['mem'], updateMemChart, curr_data);
+       graphs['net'].initialize(width, height, "net", "#netchart", 'Network', 'stack', colors['net'], urls['net'], updateNetChart, curr_data);
+
+       var gauge_height = 140;
+
+       zones = [{"from" : 0, "to" : 0, "color" : colors['load']},
+                {"from" : 0, "to" : total_cores, "color": '#f1f1f1'}];
+       createGauge2("load","Load ", '0', 'loadgauge', gauge_height, 0, total_cores, zones);
+
+       // This will be percentage
+       zones = [{"from" : 0, "to" : 0, "color" : colors['cpu']},
+                {"from" : 0, "to" : 100, "color": '#f1f1f1'}];
+       createGauge2("cpu","CPU %", '0', 'cpugauge', gauge_height, 0, 100, zones);
+
+       // We need the total Memory for all the nodes..
+       zones = [{"from" : 0, "to" : 0, "color" : colors['mem']},
+                {"from" : 0, "to" : total_memory, "color": '#f1f1f1'}];
+       createGauge2("mem","Memory (GB)", '0', 'memgauge', gauge_height, 0, total_memory, zones);
+
+       // This should be in Mbps. For now assuming max of Gbps???
+       zones = [{"from" : 0, "to" : 0, "color" : colors['net']},
+                {"from" : 0, "to" : 1000, "color": '#f1f1f1'}];
+       createGauge2("net","Network", '0', 'netgauge', gauge_height, 0, 1000, zones);
+   }
+   window.onresize = function(event) {
+       // Empty individual graphs
+       graphs['load'].destroy();
+       graphs['cpu'].destroy();
+       graphs['mem'].destroy();
+       graphs['net'].destroy();
+
+       $('.rickshaw_graph').empty();
+
+       $('#loadgauge').empty();
+       $('#cpugauge').empty();
+       $('#netgauge').empty();
+       $('#memgauge').empty();
+
+       initializeGraphs();
+   };
+
+   function reloadChart() {
+       // Clear the time interval
+       urls['load'] = url_prefix + '?r=' + curr_data + '&g=load_report' + url_suffix;
+       urls['cpu'] = url_prefix + '?r=' + curr_data + '&g=cpu_report' + url_suffix;
+       urls['mem'] = url_prefix + '?r=' + curr_data + '&g=mem_report' + url_suffix;
+       urls['net'] = url_prefix + '?r=' + curr_data + '&g=network_report' + url_suffix;
+
+       $('#period-title').html(curr_title+'    <span class="caret"></span>');
+
+       graphs['load'].reload(urls['load'], curr_data);
+       graphs['cpu'].reload(urls['cpu'], curr_data);
+       graphs['mem'].reload(urls['mem'], curr_data);
+       graphs['net'].reload(urls['net'], curr_data);
+   }
+</script>
+{% endblock %}

@@ -1,0 +1,156 @@
+{% load url from future %}
+{% block _navbar %}
+{% if admin_install != "active" %}
+<div class='bluedata-command-bar'>
+   <div class='user-actions-bar'>
+      <!-- User Guide link -->
+      <div class='user-guide-link'>
+         <a href="{% url 'userguide_view' %}/Beta-1-User-Guide.pdf" title="Beta-1-User-Guide.pdf" target='_blank'>User Guide <i class='icon'></i></a>
+      </div>
+      <div class='user-actions'>
+         <!-- User roles menu -->
+         <div class='roles-menu dropdown'>
+            <a class='dropdown-toggle' data-toggle='dropdown' role='button' id='rolesMenu' href='#'></a>  
+            <ul class='dropdown-menu' role='menu' aria-labelledby='rolesMenu'>
+               {% if request.session.tenant_list|length > 1 %}
+               {% for tenant in request.session.tenant_list %}
+               {% if tenant.id != request.session.tenant_id %}
+               {% if tenant.role_name == 'Site Admin' %}
+               <li role='presentation'><a role='menu-item' tabindex='-1' href="{% url 'set_tenant' %}?tenant={{ tenant.id }}"> <span class='icon site-admin'></span>&nbsp;&nbsp;{{ tenant.name }}</a></li>
+               {% elif tenant.role_name == 'Admin' %}
+               <li role='presentation'><a role='menu-item' tabindex='-1' href="{% url 'set_tenant' %}?tenant={{ tenant.id }}"> <span class='icon tenant-admin'></span>&nbsp;&nbsp;{{ tenant.name }}</a></li>
+               {% else %}
+               <li role='presentation'><a role='menu-item' tabindex='-1' href="{% url 'set_tenant' %}?tenant={{ tenant.id }}"> <span class='icon tenant-member'></span>&nbsp;&nbsp;{{ tenant.name }}</a></li>
+               {% endif %}
+               {% endif %}
+               {% endfor %}
+               <li role='presentation' class='divider'></li>
+               {% endif %} 
+
+               {% if not request.session.is_external %}
+               <li role='presentation'><a class="bds-modal-form" role='menu-item' tabindex='-1' href="{% url 'usersettings_view' %}?user_id={{ request.session.user_id }}"><span class='icon user-settings'></span>&nbsp;&nbsp;Change Password</a></li>
+               <li role='presentation' class='divider'></li>
+               {% endif %}
+               <li role='presentation'><a role='menu-item' tabindex='-1' href="{% url 'logout_view' %}">Logout</a></li>
+            </ul>
+            <div id="lock-message" class="pull-right center" style="display:none;"></div>
+         </div>
+         <!-- User actions menu -->
+         <div class='actions-menu dropdown'>
+            <a class='dropdown-toggle' data-toggle='dropdown' role='button' id='actionsMenu' href='#'></a>
+            <ul class='dropdown-menu' role='menu' aria-labelledby='actionsMenu'>
+               {% if request.session.role == 'Site Admin' %}
+               <li role='presentation'><a role='menu-item' tabindex='-1' href="{% url 'createtenant_view' %}">Create Tenant</a></li>
+               {% if request.session.external_auth == 'undefined' %}
+               <li role='presentation'><a role='menu-item' tabindex='-1' href="{% url 'createuser_view' %}">Create User</a></li>
+               {% endif %}
+               <li role='presentation' class='divider'></li>
+               <li role='presentation'><a role='menu-item' tabindex='-1' href="{% url 'assignusers_view' %}">Assign Users</a></li>
+               <li id="lockdown-divider" role='presentation' class='divider'></li>
+               <li role='presentation'>
+                  <a class="bds-modal-form" role='menu-item' tabindex='-1' href="{% url 'lockdown_view' %}" id="enter-lockdown" style="display:none;">Enter site lockdown
+                  </a>
+               </li>
+               <li role='presentation'>
+                  <a role='menu-item' tabindex='-1' id="leave-lockdown" style="display:none;">Exit site lockdown
+                  </a>
+               </li>
+               {% elif request.session.role == 'Admin' %}
+               <li role='presentation'><a role='menu-item' tabindex='-1' href="{% url 'createjob_view' %}">Create Job</a></li>
+               <li role='presentation'><a role='menu-item' tabindex='-1' href="{% url 'createcluster_view' %}">Create Cluster</a></li>
+               <li role='presentation'><a role='menu-item' tabindex='-1' href="{% url 'createdco_view' %}">Create Data Connector</a></li>
+               <li role='presentation' class='divider'></li>
+               <li role='presentation'><a role='menu-item' tabindex='-1' href="{% url 'assignusers_view' %}">Assign Users</a></li>
+               {% else %}
+               <li role='presentation'><a role='menu-item' tabindex='-1' href="{% url 'createjob_view' %}">Create Job</a></li>
+               <li role='presentation'><a role='menu-item' tabindex='-1' href="{% url 'createcluster_view' %}">Create Cluster</a></li>
+               {% endif %}
+            </ul>    
+         </div>
+         <!-- User information -->
+         <div class='user-info'>
+            <span class='user-tenant' data-tenantId='{{ request.session.tenant_id }}' data-role='{{ request.session.role }}'>{{ request.session.tenant|truncatechars:20 }}</span>
+            <b><span class='user-name'>{{ request.session.user|truncatechars:32 }}</span>&nbsp;&nbsp;/&nbsp;&nbsp;<span class='user-role'>{{ request.session.role|truncatechars:12 }}</span></b>
+         </div>
+      </div>
+   </div>
+   <div class='command-bar-divider'></div>
+   <div class='user-quick-actions-bar'>
+      {% if request.session.role == 'Site Admin' %}
+      <a class='quick-action-item {{ sessions }}' id='sessionsInfo' href="{% url 'manageuser_view' %}?session=active">
+         <span class='action-info'>{{ stats_data.num_sessions }}</span>
+         <div class='action-icon'></div>
+         <div class='action-label'>Sessions</div>
+      </a>
+      <a class='quick-action-item {{ vnodes }}' id='vnodesInfo' href="{% url 'managevnode_view' %}">
+         <span class='action-info'>{{ stats_data.num_vnodes }}</span>
+         <div class='action-icon'></div>
+         <div class='action-label'>Virtual Nodes</div> <!-- Add the content as value for title attribute of html element -->
+      </a>
+      <a class='quick-action-item {{ nodes }}' id='nodesInfo' href="{% url 'managepnode_view' %}">
+         <span class='action-info'>{{ stats_data.num_pnodes }}</span>
+         <div class='action-icon'></div>
+         <div class='action-label'>Physical Nodes</div>
+      </a>
+      <a class='quick-action-item {{ users }}' id='usersInfo' href="{% url 'manageuser_view' %}">
+         <span class='action-info'>{{ stats_data.num_users }}</span>
+         <div class='action-icon'></div>
+         <div class='action-label'>Users</div>
+      </a>
+      <a class='quick-action-item {{ tenants }}' id='tenantsInfo' href="{% url 'managetenant_view' %}">
+         <span class='action-info'>{{ stats_data.num_tenants }}</span>
+         <div class='action-icon'></div>
+         <div class='action-label'>Tenants</div>
+      </a>
+      {% elif request.session.role == 'Admin' %}
+      <a class='quick-action-item {{ users }}' id='usersInfo' href="{% url 'tenantextras_view' %}?tenant_id={{ request.session.tenant_id }}">
+         <span class='action-info'>{{ stats_data.num_users }}</span>
+         <div class='action-icon'></div>
+         <div class='action-label'>Users</div>
+      </a>
+      <a class='quick-action-item {{ vnodes }}' id='vnodesInfo' href="{% url 'managevnode_view' %}">
+         <span class='action-info'>{{ stats_data.num_vnodes }}</span>
+         <div class='action-icon'></div>
+         <div class='action-label'>Virtual Nodes</div>
+      </a>
+      <a class='quick-action-item {{ dcos }}' id='dcoInfo' href="{% url 'managedco_view' %}">
+         <span class='action-info'>{{ stats_data.num_dcos }}</span>
+         <div class='action-icon'></div>
+         <div class='action-label'>Data Connectors</div>
+      </a>
+      <a class='quick-action-item {{ clusters }}' id='clustersInfo' href="{% url 'managecluster_view' %}">
+         <span class='action-info'>{{ stats_data.num_active_clusters }}</span>
+         <div class='action-icon'></div>
+         <div class='action-label'>Clusters</div>
+      </a>
+      <a class='quick-action-item {{ jobs }}' id='jobsInfo' href="{% url 'managejob_view' %}">
+         <span class='action-info'>{{ stats_data.num_active_jobs }}</span>
+         <div class='action-icon'></div>
+         <div class='action-label'>Jobs</div> <!-- Add the content as value for title attribute of html element -->
+      </a>
+      {% else %}
+      <a class='quick-action-item {{ vnodes }}' id='vnodesInfo' href="{% url 'managevnode_view' %}">
+         <span class='action-info'>{{ stats_data.num_vnodes }}</span>
+         <div class='action-icon'></div>
+         <div class='action-label'>Virtual Nodes</div> 
+      </a>
+      <a class='quick-action-item {{ dcos }}' id='dcoInfo' href="{% url 'managedco_view' %}">
+         <span class='action-info'>{{ stats_data.num_dcos }}</span>
+         <div class='action-icon'></div>
+         <div class='action-label'>Data Connectors</div>
+      </a>
+      <a class='quick-action-item {{ clusters }}' id='clustersInfo' href="{% url 'managecluster_view' %}">
+         <span class='action-info'>{{ stats_data.num_active_clusters }}</span>
+         <div class='action-icon'></div>
+         <div class='action-label'>Clusters</div>
+      </a>
+      <a class='quick-action-item {{ jobs }}' id='jobsInfo' href="{% url 'managejob_view' %}">
+         <span class='action-info'>{{ stats_data.num_active_jobs }}</span>
+         <div class='action-icon'></div>
+         <div class='action-label'>Jobs</div> <!-- Add the content as value for title attribute of html element -->
+      </a>
+      {% endif %}
+   </div>    
+</div> 
+{% endif %}
+{% endblock %}

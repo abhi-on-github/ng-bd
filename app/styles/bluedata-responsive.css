@@ -1,0 +1,42 @@
+/* Styles for hidding mini dashboard items  */
+@media only screen and (max-width:1047px) {
+	.command-bar-divider {
+		display:none;
+	}
+	.user-quick-actions-bar {
+		display:none;
+	}
+}
+
+/* Styles for mini sidebar improvement */
+@media only screen and (max-width: 979px) {
+	.sidebar {
+		margin-top: 15px;
+	}
+	.menu-toggler {
+		width:17px;
+		height:6px;
+	}
+	.menu-toggler:before {
+		border-bottom: 0px none;
+		top:4px;
+		width:40px;
+	}
+	.menu-toggler:after {
+		border-bottom: 0px none;
+		top:8px;
+		width:40px;
+	}
+	.menu-toggler.display:before {
+		top:4px;
+	}
+	.menu-toggler.display:after {
+		top:9px;
+	}
+	.menu-toggler > .menu-text:after {
+		content: "";
+	}
+	.menu-toggler > .menu-text {
+		border-width: 9px 25px;
+	}
+}

@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% load url from future %}
+{% block main_content %}
+<div class="row-fluid">
+   {% if create_tenant == "active" %}
+   <form class="bds-form form-horizontal" id="createtenant"  action='{% url "createtenant_view" %}' enctype="multipart/form-data" method="POST">{% csrf_token %}
+   {% else %}
+   <form class="bds-form form-horizontal" id="createtenant"  action='{% url "edittenant_view" %}' enctype="multipart/form-data" method="POST">{% csrf_token %}
+   {% endif %}
+      <div class="control-group">
+         <label class="control-label">Tenant Name <i class='icon-question-sign' id='tenant_name_info' data-rel='tooltip' data-placement='top'></i></label>
+         <div class="input controls">
+            <input type="text" name="name" id="name" value="{{tenant_data.name}}" >
+         </div>
+      </div>
+
+      <div class="control-group">
+         <label class="control-label">Tenant Description <i class='icon-question-sign' id='tenant_description_info' data-rel='tooltip' data-placement='top'></i></label>
+         <div class="input controls">
+            <input type="text" name="description" id="description"  value="{{tenant_data.description}}" >
+         </div>
+      </div>
+
+      <div class="control-group">
+         <label class="control-label">
+            Maximum Cores <i class='icon-question-sign' id='maximum_core_info' data-rel='tooltip' data-placement='top'></i></br>
+            <small class="text-info"> Total Available {{max_cores}}</small>
+         </label>
+         {% if tenant_data.cores == "undefined" %}
+         <div class="input controls">
+            <input class="input-small" type="text" name="cores" id="cores" value="Undefined" />
+         </div>
+         {% else %}
+         <div class="input controls">
+            <input class="input-small" type="text" name="cores" id="cores" value="{{tenant_data.cores}}" />
+         </div>
+         {% endif %}
+      </div>
+
+      <div class="control-group">
+         <label class="control-label">
+            Maximum Memory (GB) <i class='icon-question-sign' id='maximum_memory_info' data-rel='tooltip' data-placement='top'></i></br>
+            <small class="text-info"> Total Available {{max_memory}} </small>
+         </label>
+         {% if tenant_data.memory == "undefined" %}
+         <div class="input controls">
+            <input class="input-small" type="text" name="memory" id="memory" value="Undefined" />
+         </div>
+         {% else %}
+         <div class="input controls">
+            <input class="input-small" type="text" name="memory" id="memory" value="{{tenant_data.memory}}" />
+         </div>
+         {% endif %}
+      </div>
+      
+      <input type="text" name="id" name="id" id="id" value="{{tenant_data.id}}" style="display:none;"/>
+      <div class="form-actions">
+         <button type="button" id="form-submit" class="pull-left btn btn-primary" type="submit"><i class="icon-ok"></i> Submit</button>
+      </div>
+   </form>
+</div>
+
+{% endblock %}
+{% block page_script %}
+<script id="source" language="javascript" type="text/javascript">
+   $(document).ready(function () {
+       
+       var tenant_list = {{tenant_list|safe}};
+
+       var orig_name = '{{tenant_data.name|safe}}';
+       $.validator.addMethod("validName", function(value, element) {
+           if (orig_name == value)
+               return true;
+           var tenant_list = {{tenant_list|safe}};
+           for (i = 0; i < tenant_list.length; i++) {
+               if (tenant_list[i].name == value) {
+                   return false;
+               }
+           }
+           return true;
+       }, "Tenant name exist. Please specify a different one");
+
+       $('#createtenant').validate({
+           errorElement: 'span',
+           errorClass: 'help-inline',
+           focusInvalid: false,
+           rules: {
+               name: {
+                   required: true,
+                   minlength: 1,
+                   maxlength: 16,
+                   validName: true
+               },
+               cores: {
+                   min: 1,
+                   number: true,
+                   digits: true,
+               },
+               memory: {
+                   min: 1,
+                   number: true,
+                   digits: true,
+               },
+               description: 'required',
+           },
+
+           messages: {
+               name: {
+                   required: "Please provide a valid tenant name.",
+                   minlength: $.format("Tenant name must be atleast {0} characters"),
+                   maxlength: $.format("Tenant name must not exceed {0} characters")
+               },
+               description:  "Please provide a valid description.",
+               cores: "Please enter a valid maximum cores for this tenant. Value must be an integer greater than zero",
+               memory: "Please enter a valid maximum memory (GB) for this tenant. Value must be an integer greater than zero",
+           },
+
+           invalidHandler:  function (event, validator) {
+               $('.alert-error', $('#createtenant')).show();
+           },
+
+           highlight: function (e) {
+               $(e).closest('.control-group').removeClass('info').addClass('error');
+           },
+
+           success: function (e) {
+               $(e).closest('.control-group').removeClass('error').addClass('info');
+               $(e).remove();
+           },
+             
+           errorPlacement: function (error, element) {
+               bdStopSpin();
+               if(element.is(':checkbox') || element.is(':radio')) {
+                   var controls = element.closest('.controls');
+                   if(controls.find(':checkbox,:radio').length > 1) controls.append(error);
+                   else error.insertAfter(element.nextAll('.lbl').eq(0));
+               }
+               else if(element.is('.chzn-select')) {
+                   error.insertAfter(element.nextAll('[class*="chzn-container"]').eq(0));
+               }
+               else error.insertAfter(element);
+           },
+
+           submitHandler: function (form) {
+              bdsFormSubmit(form, "Failed to create tenant", '{% url "managetenant_view" %}');
+           },
+       });
+   });
+</script>
+{% endblock %}

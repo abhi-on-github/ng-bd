@@ -1,0 +1,1193 @@
+{% extends 'base.html' %}
+{% load url from future %}
+{% block main_content %}
+<div id='userAssignment_page'>
+  {% if request.session.external_auth != 'undefined' %}
+  <div class="widget-box transparent no-border">
+     <div class="widget-header widget-header-large no-border">
+        <h4></h4>
+        <div class="widget-toolbar no-border">
+           <a href='#'>
+              <button class="btn btn-success btn-small" id='addUserManually'>
+                 <i class="icon-plus"></i>
+                 Add External User Manually
+              </button>
+           </a>
+        </div>
+     </div>
+  </div>
+  <div class="manual-user-form">
+    <div class="control-group">
+      <label class="control-label">Login Name</label>
+      <div class="input controls">
+         <input type="text" name="user_manual_name" id="user_manual_name" >
+      </div>
+    </div>
+    <div class="control-group">
+      <label class="control-label">Full Name</label>
+      <div class="input controls">
+         <input type="text" name="user_manual_descr" id="user_manual_descr" >
+      </div>
+    </div>
+    <button class="add-external-user" type="button">Add User</button>
+  </div>
+  <div class='content-separator'></div>
+  {% endif %}
+  <div class='user-assignment-container'>
+    {% if request.session.role == 'Site Admin' %}
+    <div class='users-list-wrapper span4'>
+    {% else %}
+    <div class='users-list-wrapper span6'>
+    {% endif %}  
+      <div class='list-header'>
+        <div class='list-title'>USERS</div>
+        <div class='list-count'></div>
+        <div class='list-search'>
+          <i class='icon-search'></i>
+          <input type='text' placeholder='Filter...' id='usersFilter' class='filterInput' />
+          <i class='icon-remove'></i>
+        </div>
+      </div>
+      <div class='list-container'>
+        <ul class='users-list'></ul>
+      </div>
+    </div>
+    {% if request.session.role == 'Site Admin' %}
+    <div class='tenants-list-wrapper span4'>
+      <div class='list-header inactive'>
+        <div class='list-title'>TENANTS</div>
+        <div class='list-count'></div>
+        <div class='list-search'>
+          <i class='icon-search'></i>
+          <input type='text' placeholder='Filter...' id='tenantsFilter' class='filterInput' />
+          <i class='icon-remove'></i>
+        </div>
+      </div>
+      <div class='list-container'>
+        <ul class='tenants-list'></ul>
+      </div>
+    </div>
+    <div class='user-assignment inactive span4'>
+    {% else %}
+    <div class='user-assignment inactive span6'>
+    {% endif %}  
+      <div class='assignment-header'>
+        <div class='user-name'></div>
+        <span class='title-info'>Select a department from the Tenants list to edit user role</span>
+        <div class='tenant-name'><span class='assigned-tenant'></span><b></b></div>
+      </div>
+      <div class='assignment-content'>
+        <div class='assignment-info'>
+          <span class='select-user'>Please select an User from User list to edit their Tenancies</span>
+          <span class='select-tenant'>Please select a Tenancy from Tenants list to manage the User's Role</span>
+        </div>
+        <div class='assignment'>
+          <div class='title'>MANAGE TENANT ROLE</div>
+          <div class='roles-list-container'></div>
+          <div class='assignment-action'>
+            <button id='cancelEditRole' class='inactive'>Cancel</button><button id='saveEditRole' class='inactive'>Save</button>
+          </div>
+          <div class='remove-tenant'>
+            <button id='removeTenant'>Remove from this Tenant</button>
+          </div>
+        </div>
+      </div>  
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_script %}
+<script id="source" language="javascript" type="text/javascript"> 
+
+  var usersJson = {{user_list|safe}},
+  tenantsJson = {{tenant_list|safe}},
+  userTenantsJson = {{user_tenant_list|safe}},
+  extAuthUsersJson = {{external_auth_users|safe}},
+  rolesJson = {{role_list|safe}};
+
+  var USER_ID = '{{ request.session.user_id }}',
+  USER_ROLE = '{{ selected_role_name }}',
+  USER_TENANT_ID = '{{ request.session.tenant_id }}',
+  USER_TENANT = '{{ request.session.tenant }}',
+  EXTERNAL_AUTH = '{{ request.session.external_auth|safe }}';
+
+  //extending the pseudo (':') class json object with new key 'containsi'
+  $.extend(
+    $.expr[':'], {
+      'containsi' : function(elem, i, match, array) {
+        return $('label', $(elem)).text().toLowerCase().indexOf(match[3].toLowerCase()) >= 0;
+      }    
+    }
+  );
+
+  //method to get ID in html element format
+  function getHtmlId(idString, type)
+  {
+    if(type == 'externalUser') {
+      return 'ext_'+idString.replace(/ /g, '_');
+    }
+    else {
+      return idString.replace(/\//g, '-');
+    }
+  }
+
+  //method to get ID in JSON key format
+  function getJsonId(idString)
+  {
+    if(idString.indexOf('ext_') > -1) {
+      return idString.substring(4).replace(/_/g, ' ');
+    }
+    else {
+      return idString.replace(/-/g, '/');
+    }
+  }
+  
+  //method to reset the assignment section to a stage at when user is selected
+  function resetAssignment()
+  {
+    $('.assignment-header .title-info').show();
+    $('.assignment-header .tenant-name').hide();
+    $('.assignment-content .assignment').hide();
+    $('.assignment-info .select-user').hide();
+    $('.assignment-info .select-tenant').show();
+    $('.assignment-content .assignment-info').show();
+  }
+
+  //method to clear the Assignment section to its initial stage or default state, when page loaded
+  function clearAssignment()
+  {
+    $('.assignment-header .user-name').hide();
+    $('.assignment-header .tenant-name').hide();
+    $('.assignment-header .title-info').hide();
+    $('.assignment-info .select-tenant').hide();
+    $('.assignment-info .select-user').show();
+    $('.assignment-content .assignment').hide();
+    $('.assignment-content .assignment-info').show();
+    $('.user-assignment').removeClass('active').addClass('inactive');
+  }
+
+  //method to get the role info
+  function getRoleInfo(action, key)
+  {
+    var infoJson = {};
+    switch(action)
+    {
+      case 'byId'     : key = getJsonId(key);
+                        $(rolesJson).each(function(roleIndex, roleInfo){
+                          if(roleInfo.id == key) {
+                            infoJson = { 'badgeValue':roleInfo.badge_value, 'id':roleInfo.id, 'name':roleInfo.name, };
+                            return false;   
+                          }
+                        });
+                        break;
+
+      case 'byValue'  : $(rolesJson).each(function(roleIndex, roleInfo){
+                          if(roleInfo.badge_value == key) {
+                            infoJson = { 'id':roleInfo.id, 'name':roleInfo.name, 'badgeValue':roleInfo.badge_value };
+                            return false; 
+                          }
+                        });
+                        break;
+    }
+    return infoJson;
+  }
+  
+  //method to get the count of user tenants
+  function get_tenants_count(user_id)
+  {
+    var tenants = get_tenant_list(user_id), tenantsCount = 0;
+    for(var i = 0, j = tenants.length; i < j; i++) { //considering tenants except 'Site Admin' tenant
+      if(tenants[i].name != 'Site Admin') { //increment the count when tenant is not 'Site Admin'
+        tenantsCount++;
+      }
+    }
+    return tenantsCount;
+  }
+
+  //method to get the tenants list of user
+  function get_tenant_list(user_id)
+  {
+    user_id = getJsonId(user_id);
+    for (var i = 0, j = userTenantsJson.length; i < j; i++) {
+      if (userTenantsJson[i].id == user_id) {
+        return userTenantsJson[i].tenants;
+      }
+    }
+    return [];
+  }
+
+  //method to get user tenants details
+  function getUserTenantInfo(userId, tenantId)
+  {
+    userId = getJsonId(userId);
+    tenantId = getJsonId(tenantId); 
+
+    var userTenants;
+    for(var i = 0, j = userTenantsJson.length; i < j; i++) {
+      if(userTenantsJson[i].id == userId) { //update the existing user's tenancy
+        userTenants = userTenantsJson[i].tenants;
+        for(var k = 0, l = userTenants.length; k < l; k++) {
+          if(userTenants[k].id == tenantId) {
+            //prepare json to update the existing tenant role
+            return { 'action':'update_usertenant', 'userIndex':i, 'tenantIndex':k, 'userId':userId, 'tenantId':tenantId };
+          }
+        }
+        //prepare json to add new tenant role to existing user
+        return { 'action':'add_usertenant', 'userIndex':i, 'userId':userId, 'tenantId':tenantId };
+      }  
+    }
+    //prepare json to add new user with selected role
+    return { 'action':'add_usertenant', 'userId':userId, 'tenantId':tenantId };
+  }
+
+  //method to remove the user tenant from Window or Page object
+  function removeUserTenant(userId, tenantId, tenantsCount) 
+  {
+    userId = getJsonId(userId);
+    tenantId = getJsonId(tenantId);
+
+    if(USER_ROLE == 'Site Admin') //remove particular tenant info when user is site admin
+    {
+      var userTenants;
+      for(var i = 0, j = userTenantsJson.length; i < j; i++) {
+        if(userTenantsJson[i].id == userId) { //update the existing user's tenancy
+          userTenants = userTenantsJson[i].tenants;
+          for(var k = 0, l = userTenants.length; k < l; k++) {
+            if(userTenants[k].id == tenantId) { //remove the existing tenant role
+              userTenantsJson[i].tenants.splice(k, 1);
+              if(tenantsCount == 0) {
+                userTenantsJson.splice(i, 1);
+              }
+              return tenantsCount;    
+            }
+          }
+        }
+      }
+    }
+    else //remove particular user info when Tenant Admin, because no other tenant info are associated/availble in current case
+    {
+      for(var i = 0, j = userTenantsJson.length; i < j; i++) {
+        if(userTenantsJson[i].id = userId) { //remove the user info as it associated to particular tenant
+          userTenantsJson.splice(i, 1);
+          return tenantsCount;
+        }
+      }
+    }
+  }
+
+  //update user information to get sync with backend
+  function updateUserInfo(userElem, userId, userTenantInfo)
+  {
+    var resultInfo = {};
+
+    switch(userTenantInfo['action'])
+    {
+      case 'add_usertenant'     :   //update as new user or new tenant role
+                                    if(userTenantInfo['userIndex'] != null) { //added as new tenant role to existing user
+                                      userTenantsJson[userTenantInfo.userIndex].tenants.push({ 'id':userTenantInfo.tenantId, 'role':userTenantInfo.roleId, 'role_name':userTenantInfo.roleName });
+                                    }
+                                    else { //added as new user with selected role
+                                      if(userElem.attr('id').indexOf('ext_') > -1) { //add external user to user tenants list and users list, with id from backend
+                                        for(var i = 0, j = extAuthUsersJson.length; i < j; i++) { 
+                                          if(extAuthUsersJson[i].name == userTenantInfo['userId']) {
+                                            usersJson.push({ 'id':userId, 'name':extAuthUsersJson[i].name, 'is_siteadmin':false, 'is_external':true });
+                                            userElem.attr('id', getHtmlId(userId));
+                                            extAuthUsersJson.splice(i, 1);
+                                            break;
+                                          }
+                                        }
+                                        userTenantsJson.push({ 'id':userId, 'tenants':[{'id':userTenantInfo.tenantId, 'role':userTenantInfo.roleId, 'role_name':userTenantInfo.roleName }] });
+                                      }
+                                      else { //add internal user to user tenants list
+                                        userTenantsJson.push({ 'id':userTenantInfo.userId, 'tenants':[{'id':userTenantInfo.tenantId, 'role':userTenantInfo.roleId, 'role_name':userTenantInfo.roleName }] });
+                                      }    
+                                    }
+                                    break;
+
+      case 'update_usertenant'  :   //update the existing tenant roles
+                                    userTenantsJson[userTenantInfo.userIndex].tenants[userTenantInfo.tenantIndex].role = userTenantInfo['roleId'];
+                                    userTenantsJson[userTenantInfo.userIndex].tenants[userTenantInfo.tenantIndex].role_name = userTenantInfo['roleName'];
+                                    break;
+
+      case 'remove_usertenant'  :   //remove user tenant info and update user item with no role 
+                                    var userTenantsCount = removeUserTenant(userTenantInfo['userId'], userTenantInfo['tenantId'], userTenantInfo['tenantsCount']);
+                                    if(userTenantsCount == 0) { 
+                                      for(var i = 0, j = usersJson.length; i < j; i++) { //remove user from users_list and if required add user to external list 
+                                        if(usersJson[i].id == userId) {
+                                          if(usersJson[i].is_external) { //if user is external then add to external list
+                                            extAuthUsersJson.push({ 'name':usersJson[i].name });
+                                            userElem.attr('id', getHtmlId(usersJson[i].name, 'externalUser'));
+                                            userElem.find('.user-info').hide();
+                                          } 
+                                          else { //if user have no role then remove that user (since internal user)
+                                            userElem.remove();
+                                            users_count = (users_count - 1); //decrease the total users count by 1
+                                            $('.list-count', $('.users-list-wrapper')).html(users_count);
+                                          }
+                                          resultInfo['username'] = usersJson[i].name;
+                                          usersJson.splice(i, 1);
+                                          break;
+                                        }
+                                      }                      
+                                    }
+                                    else { 
+                                      resultInfo['username'] = userElem.find('label').html();
+                                      if(USER_ROLE == 'Site Admin') { //for site admin user, update user tenants count
+                                        if(userElem.find('.site-admin-icon').hasClass('active')) { //hide the site admin tenant from user
+                                          userTenantsCount = (userTenantsCount - 1);
+                                        }
+                                        if(userTenantsCount > 0) {
+                                          userElem.find('.user-info').html(userTenantsCount);
+                                        }
+                                        else {
+                                          userElem.find('.user-info').hide();
+                                        }
+                                      }
+                                      else { //for tenant admin, hide the user tenant info
+                                        userElem.find('.user-info').hide();
+                                      }
+                                    }
+                                    break;
+
+      case 'update_siteadmin'   :   //update the site admin role for user
+                                    var isUserFound = false;
+                                    for(var i = 0, j = usersJson.length; i < j; i++) {
+                                      if(usersJson[i].id == userTenantInfo['userId']) {
+                                        resultInfo['username'] = usersJson[i].name;
+                                        if(!userTenantInfo['isSiteAdmin'] && userTenantInfo['tenantsCount'] == 0) { //if user tenants count is 0 and site admin flag set to false, then update user based on its is_external flag, i.e. remove user based on is_external flag
+                                          if(usersJson[i].is_external) { //add user back to external list
+                                            extAuthUsersJson.push({ 'name':usersJson[i].name });
+                                            userElem.attr('id', getHtmlId(usersJson[i].name, 'externalUser'));
+                                          }
+                                          else { //remove user entirely if internal user with no tenants and site admin role
+                                            userElem.remove();
+                                            $('.list-count', $('.users-list-wrapper')).html(--users_count);
+                                          }
+                                          usersJson.splice(i, 1);
+                                        }
+                                        else {
+                                          usersJson[i].is_siteadmin = userTenantInfo['isSiteAdmin']; 
+                                        }
+                                        isUserFound = true;
+                                        break;
+                                      }
+                                    }
+                                    if(!isUserFound) {
+                                      for(var i = 0, j = extAuthUsersJson.length; i < j; i++) {
+                                        if(extAuthUsersJson[i].name == userTenantInfo['userId']) { //add external user to users_list and remove it from external list
+                                          resultInfo['username'] = extAuthUsersJson[i].name;
+                                          usersJson.push({ 'id':userId, 'name':extAuthUsersJson[i].name, 'is_siteadmin':true, 'is_external':true });          
+                                          userElem.attr('id', getHtmlId(userId));
+                                          extAuthUsersJson.splice(i, 1);
+                                          break;
+                                        }
+                                      }
+                                    }
+                                    break;
+    }
+
+    return resultInfo;
+  }
+
+  
+  //initialize the user assignment component
+  var users_count = 0, tenants_count = 0;
+  $(document).ready(function(){
+  
+      //Adding feature to add external user manually
+      if(EXTERNAL_AUTH != 'undefined') 
+      {
+        //handle add user manually option
+        $(document).on('click', '#addUserManually', function(){
+          if($('.manual-user-form').is(':hidden')) {
+            $(this).find('i.icon-plus').removeClass('icon-plus').addClass('icon-minus');
+            $('#user_manual_name').val('');
+            $('#user_manual_descr').val('');
+            $('.manual-user-form').show('clip');
+          }
+          else {
+            $(this).find('i.icon-minus').removeClass('icon-minus').addClass('icon-plus');
+            $('.manual-user-form').hide('clip');
+          }
+        });
+        //add user manually to external list
+        $(document).on('click', 'button.add-external-user', function(){
+          var userName = $.trim($('#user_manual_name').val());
+          if(userName.length == 0) {
+            bootbox.alert("User name can't be blank. Please enter", function(onEvent){ return; });
+          }
+          else {
+            var usersList = $('ul.users-list li label'), isUserExist = false; 
+            for(var i = 0, j = usersList.length; i < j; i++) { 
+              if($(usersList[i]).html() == userName) {
+                bootbox.alert("User exists in the list. Please enter unique name", function(onEvent){ return; });
+                isUserExist = true;
+              }
+            }
+            if(!isUserExist) {
+              extAuthUsersJson.push({ 'name':userName, 'description':$.trim($('#user_manual_descr').val()) });
+              var userItemHtml = '<li id="'+getHtmlId(userName, 'externalUser')+'" class="active">';
+              userItemHtml += '<i class="icon-user"></i><label>'+userName+'</label>';
+              userItemHtml += '<span class="user-info" style="display:none;"></span>'; 
+              if(USER_ROLE == 'Site Admin') {
+                userItemHtml += '<i class="site-admin-icon icon-star"></i>';
+                userItemHtml += '<div class="assign-site-admin"><input type="checkbox" class="is-site-admin" /><i class="icon-star"></i><b>Site Admin</b>';
+                userItemHtml += '<div class="siteadmin-action"><button class="save-site-admin inactive">Save</button></div></div>';
+              }
+              userItemHtml += '</li>';
+              $('ul.users-list').append(userItemHtml);
+              users_count++;
+              $('ul.users-list li').sort(sort_asc).appendTo('ul.users-list');
+              $('.list-count', $('.users-list-wrapper')).html(users_count);
+              bootbox.alert("User "+userName+" is successfully added </br> <h5 class='user-info-message'><i class='icon-warning-sign'></i>This user will be removed from the list, if not assigned to any tenant.</h5>", function(onEvent){ 
+                  $('#addUserManually').find('i.icon-minus').removeClass('icon-minus').addClass('icon-plus');
+                  $('.manual-user-form').hide();
+              });
+            }
+          }
+        });
+      }
+      
+      //preparing roles list (role choices) from JSON
+      $('.roles-list-container').html(function(){
+        var roleListHtml = '', badgeValue, roleWords;
+        $(rolesJson).each(function(roleIndex, roleInfo){
+          if(roleInfo.name != 'Site Admin') {
+            roleListHtml += '<div class="role-input"><input type="radio" name="role-input" id="'+getHtmlId(roleInfo.id)+'" /><label for="'+getHtmlId(roleInfo.id)+'">'+roleInfo.name+'</label></div>';
+          }
+          //preparing badge value from role words
+          badgeValue = ''; 
+          roleWords = roleInfo.name.split(' ');
+          $(roleWords).each(function(i, word){
+            badgeValue += word.substring(0, 1);
+          });
+          roleInfo['badge_value'] = badgeValue;
+        });
+        return roleListHtml;
+      });
+
+      //preparing users list from json and append the HTML list
+      $('ul.users-list').html(function(){
+        var usersListHTML = '', userJson, tenantInfo, tenantsCount;
+        
+        //adding users from users_list (those are part of BlueData system/cluster)
+        for(var i = 0, j = usersJson.length; i < j; i++) {
+          userJson = usersJson[i];
+          usersListHTML += '<li id="'+getHtmlId(userJson.id)+'" class="active">';
+          usersListHTML += '<i class="icon-user gray"></i><label>'+userJson.name+'</label>';
+          //allow Site Admin user to add/edit/delete 'Site Admin' role for other user
+          if(USER_ROLE == 'Site Admin') {
+            tenantsCount = get_tenants_count(userJson.id);
+            usersListHTML += (tenantsCount > 0) ? '<span class="user-info">'+tenantsCount+'</span>' : '<span class="user-info" style="display:none;"></span>';
+            //when user have the role of siteadmin
+            if (userJson.is_siteadmin) {
+                usersListHTML += '<i class="site-admin-icon active icon-star"></i>';
+                usersListHTML += '<div class="assign-site-admin"><input type="checkbox" class="is-site-admin" checked /><i class="icon-star"></i><b>Site Admin</b>'  ;
+            }
+            else { //when user haven't the role of siteadmin
+                usersListHTML += '<i class="site-admin-icon icon-star"></i>';
+                usersListHTML += '<div class="assign-site-admin"><input type="checkbox" class="is-site-admin" /><i class="icon-star"></i><b>Site Admin</b>'  ;
+            }
+            usersListHTML += '<div class="siteadmin-action"><button class="save-site-admin inactive">Save</button></div></div>';
+          }
+          else { //don't allow 'Site Admin' role changes, to Tenant Admin
+            tenantInfo = get_tenant_list(userJson.id); 
+            if(!$.isEmptyObject(tenantInfo)) { //show the user role in particular tenant, if exists
+              usersListHTML += '<span class="user-info">'+getRoleInfo('byId', tenantInfo[0].role).badgeValue+'</span>';
+            }
+            else {
+              usersListHTML += '<span class="user-info" style="display:none;"></span>'; 
+            }
+            usersListHTML += (userJson.is_siteadmin) ? '<i class="site-admin-icon active icon-star"></i>' : '<i class="site-admin-icon icon-star"></i>';
+          }
+          usersListHTML += '</li>';
+          users_count++;   
+        }
+        
+        //adding external auth user to users' column, which does't exists in users_list(or in BlueData cluster/system) 
+        if(extAuthUsersJson.length > 0) {
+          for(var i = 0, j = extAuthUsersJson.length; i < j; i++) { 
+            if(!extAuthUsersJson[i].name_clash) { //prepare html of user element if valid external user
+              usersListHTML += '<li id="'+getHtmlId(extAuthUsersJson[i].name, 'externalUser')+'" class="active">';
+              usersListHTML += '<i class="icon-user"></i><label>'+extAuthUsersJson[i].name+'</label>';
+              usersListHTML += '<span class="user-info" style="display:none;"></span>'; 
+              if(USER_ROLE == 'Site Admin') {
+                usersListHTML += '<i class="site-admin-icon icon-star"></i>';
+                usersListHTML += '<div class="assign-site-admin"><input type="checkbox" class="is-site-admin" /><i class="icon-star"></i><b>Site Admin</b>';
+                usersListHTML += '<div class="siteadmin-action"><button class="save-site-admin inactive">Save</button></div></div>';
+              }
+            }
+            else { //add invalid external user with disabling all operations and different color, whose name clash with other internal user
+              usersListHTML += '<li class="name-clash">';
+              usersListHTML += '<i class="icon-user"></i><label>'+extAuthUsersJson[i].name+'</label>';
+              usersListHTML += '<span class="user-info" style="display:none;"></span>'; 
+            }
+            usersListHTML += '</li>';
+            users_count++;
+          }
+        }
+        
+        return usersListHTML;
+      }); 
+      
+      $('ul.users-list li').sort(sort_asc).appendTo('ul.users-list');
+      $('.list-count', $('.users-list-wrapper')).html(users_count);
+
+      //allow tenant list only when user is Site Admin
+      if(USER_ROLE == 'Site Admin') 
+      {
+        //preparing tenants list from json and append to HTML list
+        $('ul.tenants-list').html(function(){
+          var tenantsListHTML = '', tenantJson;
+          for(var i = 0, j = tenantsJson.length; i < j; i++) {
+            if(tenantsJson[i].name != 'Site Admin') { // hide the site admin tenant from user
+              tenantsListHTML += '<li id="'+getHtmlId(tenantsJson[i].id)+'" class="inactive"><span class="tenant-info"></span><label>'+tenantsJson[i].name+'</label></li>';
+              tenants_count++;
+            }
+          }
+          return tenantsListHTML;
+        });
+
+        $('ul.tenants-list li').sort(sort_asc).appendTo('ul.tenants-list');
+        $('.list-count', $('.tenants-list-wrapper')).html(tenants_count);
+
+        //handle on selection of user from user list 
+        $(document).on('click', 'ul.users-list li.active', function(event){
+
+          //remove the previous selection of users and then select the current user
+          $('ul.users-list li').removeClass('selected'); //.find('.save-site-admin').removeClass('active').addClass('inactive');
+          $(this).addClass('selected');
+          
+          //enabling the tenants list
+          var list_header = $('.tenants-list-wrapper .list-header');
+          if(list_header.hasClass('inactive')) {
+            list_header.removeClass('inactive');
+          }
+          //and reset the tenants list (or remove the previous selection and state)
+          var itemsList = $('ul.tenants-list');
+          $('li', itemsList).removeClass('user-tenant selected inactive').addClass('active');
+          //and select appropriate tenants to which user is assigned
+          var tenants = get_tenant_list($(this).attr('id'));
+          if(!($.isEmptyObject(tenants))) {
+            var tenantElem;
+            for(var i = 0, j = tenants.length; i < j; i++) {
+              if(tenants[i].name != 'Site Admin') { //hidde the 'Site Admin' tenant
+                tenantElem = $('#'+getHtmlId(tenants[i].id), itemsList);
+                tenantElem.find('.tenant-info').html(getRoleInfo('byId', tenants[i].role).badgeValue);
+                tenantElem.addClass('user-tenant');
+              }
+            }
+          }
+          //arrange the selected and then un-selected items in alphabetic
+          var userTenantItems = $('li.user-tenant', itemsList).sort(sort_asc),
+          nonUserTenantItems = $('li:not(.user-tenant)', itemsList).sort(sort_asc);
+          $('li', itemsList).remove();
+          itemsList.append(userTenantItems).append(nonUserTenantItems);
+          //update the count for tenants available for selection
+          tenants_count = nonUserTenantItems.length;
+          $('.list-count', $('.tenants-list-wrapper')).html(tenants_count);
+
+          //enabling the User Assignment section
+          if($('.user-assignment').hasClass('inactive')) {
+            $('.user-assignment').removeClass('inactive').addClass('active');
+          }
+          $('.assignment-header .user-name').html($(this).find('label').text()).show();
+          resetAssignment();
+        });
+
+        //enabling and disabling the button for saving site admin change
+        $(document).on('change', '.is-site-admin', function(){
+          var userElem = $(this).closest('li.selected'), userJsonId = getJsonId(userElem.attr('id')), is_siteAdmin = false;
+          for(var i = 0, len = usersJson.length; i < len; i++) {
+            if(usersJson[i]['id'] == userJsonId) {
+              is_siteAdmin = usersJson[i]['is_siteadmin'];
+              break;
+            }
+          } 
+          if($(this).is(':checked') != is_siteAdmin) { //enable the save button to save change
+            userElem.find('.siteadmin-action button').removeClass('inactive').addClass('active');
+          } 
+          else { //disable the save button as no change to save
+            userElem.find('.siteadmin-action button').removeClass('active').addClass('inactive');
+          }
+        });
+
+        //handle the save of assigning site admin role
+        $(document).on('click', '.save-site-admin.active', function(){
+          var userElem = $(this).closest('li.selected'),
+          saveSiteAdminButton = $(this),
+          saRoleInfo = getRoleInfo('byValue', 'SA');
+          
+          var userTenantInfo = { 'action':userElem.find('.is-site-admin').prop('checked')?'add_usertenant':'remove_usertenant', 'userId':getJsonId(userElem.attr('id')), 'tenantId':USER_TENANT_ID, 'roleId':saRoleInfo.id };
+
+          //if current user is last user to revoke from site admin role (means no more site admin after this)
+          if(userTenantInfo['action'] == 'remove_usertenant' && $('ul.users-list li i.site-admin-icon.active').length == 1) {
+            bootbox.alert("You can't revoke the last user of Site Admin role", function(onEvent){ return; });
+            //reset the original state
+            userElem.find('.is-site-admin').prop('checked', true);
+            $(this).removeClass('active').addClass('inactive');
+          }
+          else { //if more site admin users available, sending request to update the backend
+            bdStartSpin();
+            $.ajax({
+              url : '{% url "assignusers_view" %}',
+              method : 'POST',
+              csrfmiddlewaretoken : csrftoken,
+              headers : {'X-CSRFToken' : csrftoken},
+              data : JSON.stringify({'action':userTenantInfo['action'], 'user_id':userTenantInfo['userId'], 'tenant_id':userTenantInfo['tenantId'], 'role_id':userTenantInfo['roleId']}),
+              dataType: 'json',
+              success: function(result) {
+                if(result.status_code >= 200 && result.status_code < 207) { //when error not occurred
+                  //if user is same as logged-in user, reload the page as tenancies are updated for same user
+                  if(USER_ID == userTenantInfo['userId']) {
+                    bootbox.alert('User info updated.', function(onEvent){ 
+                      window.location.reload();
+                    });
+                  }
+                  else { //if user is different, update the site admin info for paritcular user
+                    var isSiteAdmin;
+                    if(userElem.find('.is-site-admin').prop('checked')) {
+                      userElem.find('.site-admin-icon').addClass('active');
+                      isSiteAdmin = true;
+                    } 
+                    else {
+                      userElem.find('.site-admin-icon').removeClass('active');
+                      isSiteAdmin = false;
+                    }
+                    userTenantInfo['action'] = 'update_siteadmin';
+                    userTenantInfo['isSiteAdmin'] = isSiteAdmin; 
+                    userTenantInfo['tenantsCount'] = get_tenants_count(userTenantInfo['userId']);
+                    var resultInfo = updateUserInfo(userElem, result.user_id, userTenantInfo);
+
+                    bdStopSpin();
+                    var message = 'User ' + resultInfo['username'] + (isSiteAdmin ? (' is added as Site Admin') : (' is revoked as Site Admin'));
+                    bootbox.alert(message, function(onEvent){ return; });
+                    saveSiteAdminButton.removeClass('active').addClass('inactive');
+                  }
+                }
+                else { //when error occurred then reload the page
+                  bdStopSpin();
+                  bootbox.alert(result.reason, function(onEvent){ 
+                    bdStartSpin();
+                    window.location.reload();
+                  });
+                }
+              },
+              error: function(result) {
+                bdStopSpin();
+                bootbox.alert('Error occurred while processing AJAX request', function(onEvent){ return; });
+              }
+            });
+          }
+
+        });
+      
+      }   
+      else //allow only user assignment section when user is Tenant Admin (no need to select tenant)
+      {
+        //handle on selection of user from user list 
+        $(document).on('click', 'ul.users-list li.active', function(event){
+
+          //remove the previous selection of users and then select the current user
+          $('ul.users-list li').removeClass('selected');
+          $(this).addClass('selected');
+          
+          //enabling the User Assignment section
+          if($('.user-assignment').hasClass('inactive')) {
+            $('.user-assignment').removeClass('inactive').addClass('active');
+          }
+          $('.assignment-header .user-name').html($(this).find('label').text()).show();
+          $('.assignment-header .title-info').hide();
+          if($(this).find('.user-info').is(':visible')) {
+            var roleValue = $(this).find('.user-info').html();
+            $('.assignment-header .tenant-name span.assigned-tenant').html(roleValue).parent().show();
+            $('.role-input #'+getHtmlId(getRoleInfo('byValue', roleValue).id)).prop('checked', true);
+            $('.assignment .remove-tenant').show();
+          }
+          else {
+            $('.assignment-header .tenant-name span.assigned-tenant').html('&#63;').parent().show();
+            $('.role-input input:checked').prop('checked', false);
+            $('.assignment .remove-tenant').hide();
+          }
+          $('.assignment-header .tenant-name b').html(USER_TENANT);
+          $('.assignment-content .assignment-info').hide();
+          $('.assignment-action button').removeClass('active').addClass('inactive');
+          $('.assignment-content .assignment').show();  
+        });
+
+      }
+
+      //handle filtering of users on keyup
+      $('#usersFilter').keyup(function(){
+        var searchText = $.trim($(this).val()),
+            itemsList = $('ul.users-list'),
+            list_count = $('.list-count', $('.users-list-wrapper'));
+        
+        //remove the previous selection and active & inactive states
+        if(USER_ROLE == 'Site Admin') { 
+          $('li', itemsList).removeClass('selected inactive active').find('.save-site-admin').removeClass('active').addClass('inactive');
+          //allow tenant list only when user is Site Admin
+          $('ul.tenants-list li').removeClass('user-tenant selected active').addClass('inactive');
+          $('.tenants-list-wrapper .list-header').addClass('inactive');  
+        }
+        else {
+          $('li', itemsList).removeClass('selected inactive active');
+        }
+
+        //search text exists then enable and disable the appropriate list items 
+        if(searchText.length != 0) {
+          var searchCount = $('li:containsi("'+searchText+'")', itemsList).addClass('active').length;
+          $('li:not(:containsi("'+searchText+'"))', itemsList).addClass('inactive');
+          
+          //update the search count on filtering
+          if(searchCount > 0) 
+            list_count.html(searchCount+' out of '+users_count);
+          else
+            list_count.html(users_count); // OR show 0 users - list_count.html('0');
+
+          //arrange the active and then inactive items in alphabetic 
+          var activeItems = $('li.active', itemsList).sort(sort_asc),
+          inactiveItems = $('li.inactive', itemsList).sort(sort_asc);
+          $('li', itemsList).remove();
+          itemsList.append(activeItems).append(inactiveItems);
+        }
+        else { //search text is blank then enable/activate the entire list (or list items) and sort alphabetically
+          $('li', itemsList).addClass('active').sort(sort_asc).appendTo(itemsList);
+          list_count.html(users_count);
+        }
+        //keeping user with name-clash class only, whose name is clashing with other user
+        $('li.name-clash', itemsList).removeClass('active');
+
+        //clear the assignment section to default
+        clearAssignment();
+        
+      });
+
+      //reset the users search filter input 
+      $('.users-list-wrapper .icon-remove').click(function(){
+        var searchText = $.trim($('#usersFilter').val());
+        //when search text exists then reset the items list
+        if(searchText.length != 0) {
+          $('#usersFilter').val(''); 
+          //remove the previous selection and state to original 
+          var itemsList = $('ul.users-list');
+          if(USER_ROLE == 'Site Admin') {
+            $('li', itemsList).removeClass('selected inactive').addClass('active').find('.save-site-admin').removeClass('active').addClass('inactive'); 
+          }
+          else {
+            $('li', itemsList).removeClass('selected inactive').addClass('active');
+          }
+          $('li', itemsList).sort(sort_asc).appendTo(itemsList);
+          $('li.name-clash', itemsList).removeClass('active'); //keeping user with name-clash class only, whose name is clashing with other user
+          $('.list-count', $('.users-list-wrapper')).html(users_count);
+          //remove the previous tenants selection and disabling the list, when user is Site Admin
+          if(USER_ROLE == 'Site Admin') {
+            $('ul.tenants-list li').removeClass('user-tenant selected active').addClass('inactive');
+            $('.tenants-list-wrapper .list-header').addClass('inactive');
+          }
+          //clear the assignment section to default
+          clearAssignment();
+        }
+        else { //when search text is blank then keep the current state of items list 
+        }
+
+      });
+
+
+      //allow tenant list only when user is Site Admin
+      if(USER_ROLE == 'Site Admin') 
+      {
+        //handle filtering of tenants on keyup
+        $('#tenantsFilter').keyup(function(){
+          var searchText = $.trim($(this).val()),
+              itemsList = $('ul.tenants-list'),
+              list_count = $('.list-count', $('.tenants-list-wrapper'));
+          
+          //remove the previous selection and active & inactive states
+          $('li:not(.user-tenant)', itemsList).removeClass('selected inactive active');
+
+          //search text exists then enable and disable the appropriate list items 
+          if(searchText.length != 0) {
+            var searchCount = $('li:not(.user-tenant):containsi("'+searchText+'")', itemsList).addClass('active').length;
+            $('li:not(.user-tenant):not(:containsi("'+searchText+'"))', itemsList).addClass('inactive');
+            
+            //update the search count on filtering
+            if(searchCount > 0) 
+              list_count.html(searchCount+' out of '+tenants_count);
+            else
+              list_count.html(tenants_count); // OR show 0 tenants - list_count.html('0');
+
+            //arrange the active and then inactive items in alphabetic order
+            var activeItems = $('li:not(.user-tenant).active', itemsList).sort(sort_asc),
+            inactiveItems = $('li:not(.user-tenant).inactive', itemsList).sort(sort_asc);
+            $('li:not(.user-tenant)', itemsList).remove();
+            itemsList.append(activeItems).append(inactiveItems);
+          }
+          else { //search text is blank then enable/activate the entire list (or list items) and sort alphabetically
+            $('li:not(.user-tenant)', itemsList).addClass('active').sort(sort_asc).appendTo(itemsList);
+            list_count.html(tenants_count);
+          }
+
+        });
+
+        //reset the tenants search filter input 
+        $('.tenants-list-wrapper .icon-remove').click(function(){
+          var searchText = $.trim($('#tenantsFilter').val());
+          //when search text exists then reset the items list
+          if(searchText.length != 0) {
+            $('#tenantsFilter').val(''); 
+            //remove the previous selection and state to original 
+            var itemsList = $('ul.tenants-list');
+            $('li:not(.user-tenant)', itemsList).removeClass('selected inactive').addClass('active'); 
+            $('li:not(.user-tenant)', itemsList).sort(sort_asc).appendTo(itemsList);
+            $('.list-count', $('.tenants-list-wrapper')).html(tenants_count);
+          }
+          else { //when search text is blank then keep the current state of items list 
+          }
+
+        });
+
+        //handle on selection of tenant from tenants list 
+        $(document).on('click', 'ul.tenants-list li.active', function(event){
+          
+          //remove the previous selection of users and then select the current user
+          $('ul.tenants-list li.selected').removeClass('selected');
+          $(this).addClass('selected');
+          
+          //enabling the edit tenant assignment
+          $('.assignment-header .title-info').hide();
+          if($(this).hasClass('user-tenant')) {
+            var roleValue = $(this).find('.tenant-info').text();
+            $('.assignment-header .tenant-name span.assigned-tenant').html(roleValue).parent().show(); 
+            $('.role-input #'+getHtmlId(getRoleInfo('byValue', roleValue).id)).prop('checked', true);
+            $('.assignment .remove-tenant').show();
+          }
+          else {
+            $('.assignment-header .tenant-name span.assigned-tenant').html('&#63;').parent().show();
+            $('.role-input input:checked').prop('checked', false);
+            $('.assignment .remove-tenant').hide();
+          }
+          $('.assignment-header .tenant-name b').html($(this).find('label').text());
+          $('.assignment-content .assignment-info').hide();
+          $('.assignment-action button').removeClass('active').addClass('inactive');
+          $('.assignment-content .assignment').show();  
+
+        });
+
+        //handle the save role changes
+        $(document).on('click', '#saveEditRole.active', function(){
+          
+          //update the user's role in particular tenant
+          var userElem = $('.users-list li.selected'), 
+          tenantElem = $('.tenants-list li.selected'), 
+          newRoleInfo = getRoleInfo('byId', $('input[name="role-input"]:checked').attr('id'));
+
+          //sending request to update the backend
+          bdStartSpin();
+          var userTenantInfo = getUserTenantInfo(userElem.attr('id'), tenantElem.attr('id'));
+          userTenantInfo['roleId'] = newRoleInfo.id;
+          userTenantInfo['roleName'] = newRoleInfo.name;
+          $.ajax({
+            url : '{% url "assignusers_view" %}', 
+            method : 'POST',
+            csrfmiddlewaretoken : csrftoken,
+            headers : {'X-CSRFToken' : csrftoken},
+            data : JSON.stringify({'action':userTenantInfo['action'], 'user_id':userTenantInfo['userId'], 'tenant_id':userTenantInfo['tenantId'], 'role_id':userTenantInfo['roleId']}),
+            dataType: 'json',
+            success: function(result) {
+              if(result.status_code >= 200 && result.status_code < 207) { //when error not occurred
+                //if user is same as logged-in user, reload the page as tenancies are updated for same user
+                if(USER_ID == userTenantInfo['userId']) {
+                  bootbox.alert('User info updated.', function(onEvent){ 
+                    window.location.reload();
+                  }); 
+                }
+                else { //if user is different, update the window variable with user tenant role changes
+                  updateUserInfo(userElem, result.user_id, userTenantInfo);
+
+                  $('.tenant-info', tenantElem).html(newRoleInfo.badgeValue);
+
+                  //sort the user-tenants and active tenants list
+                  $('#tenantsFilter').val('');
+                  var itemsList = $('ul.tenants-list'), message = 'User '+userElem.find('label').html();
+                  if(tenantElem.hasClass('user-tenant')) {
+                    $('li:not(.user-tenant)', itemsList).removeClass('inactive active');
+                    $('li:not(.user-tenant)', itemsList).addClass('active').sort(sort_asc).appendTo(itemsList);   
+                    message += ' is updated as '; 
+                  } 
+                  else { //add the tenant as user tenant and then sort the user-tenants and active tenants list
+                    tenantElem.addClass('user-tenant').find('.tenant-info').show();
+                    $('li:not(.user-tenant)', itemsList).removeClass('inactive active');
+                    $('li.user-tenant', itemsList).sort(sort_asc).appendTo(itemsList);
+                    $('li:not(.user-tenant)', itemsList).addClass('active').sort(sort_asc).appendTo(itemsList);
+
+                    var userTenantsCount = get_tenants_count(userElem.attr('id'));
+                    if(userTenantsCount == 1) {
+                      userElem.find('.user-info').html(userTenantsCount).show();
+                    } else {
+                      userElem.find('.user-info').html(userTenantsCount);
+                    } 
+                    message += ' is added as ';
+                  }
+                  message += newRoleInfo.name+' of '+tenantElem.find('label').html()+' tenant';
+
+                  bdStopSpin();
+                  bootbox.alert(message, function(onEvent){ return; });
+
+                  tenantElem.removeClass('selected');
+                  //reset the assignment section
+                  resetAssignment();
+                }
+              }
+              else { //when error occurred then reload the page
+                bdStopSpin();
+                bootbox.alert(result.reason, function(onEvent){ 
+                  bdStartSpin();
+                  window.location.reload();
+                });
+              }  
+            },
+            error: function(result) {
+              bdStopSpin();
+              bootbox.alert('Error occurred while processing AJAX request', function(onEvent){ return; });
+            }
+          });
+
+        });
+
+        //handle the remove tenant
+        $(document).on('click', '#removeTenant', function(){
+
+          //confirm when removing the tenancy for user 
+          bootbox.confirm('Do you want to remove the tenancy for selected user ?', function(onEvent){
+            //if user selected yes, then do AJAX request for same
+            if(onEvent) {
+              var userElem = $('ul.users-list li.selected'), 
+              tenantElem = $('ul.tenants-list li.selected'),
+              newRoleInfo = getRoleInfo('byId', $('input[name="role-input"]:checked').attr('id'));
+
+              //sending request to update the backend
+              var userTenantInfo = { 'action':'remove_usertenant', 'userId':getJsonId(userElem.attr('id')), 'tenantId':getJsonId(tenantElem.attr('id')), 'roleId':newRoleInfo.id };
+              bdStartSpin();
+              $.ajax({
+                url : '{% url "assignusers_view" %}',
+                method : 'POST',
+                csrfmiddlewaretoken : csrftoken,
+                headers : {'X-CSRFToken' : csrftoken},
+                data : JSON.stringify({'action':userTenantInfo['action'], 'user_id':userTenantInfo['userId'], 'tenant_id':userTenantInfo['tenantId'], 'role_id':userTenantInfo['roleId']}),
+                dataType: 'json',
+                success: function(result) {
+                  if(result.status_code >= 200 && result.status_code < 207) { //when error not occurred
+                    //if user is same as logged-in user, reload the page as tenancies are updated for same user
+                    if(USER_ID == userTenantInfo['userId']) {
+                      bootbox.alert('User info updated.', function(onEvent){ 
+                        window.location.reload();  
+                      });
+                    }
+                    else { //if user is different, update user tenants count to latest
+                      userTenantInfo['tenantsCount'] = result.user_tenants_count;
+                      var resultInfo = updateUserInfo(userElem, result.user_id, userTenantInfo); 
+                      
+                      $('#tenantsFilter').val('');
+                      var itemsList = $('ul.tenants-list');
+                      $('li:not(.user-tenant)', itemsList).removeClass('inactive active');
+                      tenantElem.removeClass('selected user-tenant active'); //.find('.tenant-info').hide();
+                      var userTenantItems = $('li.user-tenant', itemsList).sort(sort_asc),
+                      nonUserTenantItems = $('li:not(.user-tenant)', itemsList).addClass('active').sort(sort_asc);
+                      itemsList.append(userTenantItems).append(nonUserTenantItems);
+
+                      bdStopSpin(); 
+                      var message =  'User '+resultInfo['username']+' is revoked as '+newRoleInfo.name+' from '+tenantElem.find('label').html()+' tenant';
+                      bootbox.alert(message, function(onEvent){ return; });
+
+                      //reset the assignment section
+                      resetAssignment();
+                    }
+                  }
+                  else { //when error occurred then reload the page
+                    bdStopSpin();
+                    bootbox.alert(result.reason, function(onEvent){ 
+                      bdStartSpin();
+                      window.location.reload();
+                    });
+                  }  
+                },
+                error: function(result) {
+                  bdStopSpin();
+                  bootbox.alert('Error occurred while processing AJAX request', function(onEvent){ return; });
+                }
+              });  
+            }
+          });
+
+        });
+
+      }
+      else //save and remove for a tenant, when user is Tenant Admin
+      {
+        //handle the save role changes
+        $(document).on('click', '#saveEditRole.active', function(){
+          
+          //update the user's role in particular tenant
+          var userElem = $('.users-list li.selected'), 
+          newRoleInfo = getRoleInfo('byId', $('input[name="role-input"]:checked').attr('id'));
+
+          //sending request to update the backend
+          var userTenantInfo = getUserTenantInfo(userElem.attr('id'), USER_TENANT_ID);
+          userTenantInfo['roleId'] = newRoleInfo.id;
+          userTenantInfo['roleName'] = newRoleInfo.name;
+          bdStartSpin();
+          $.ajax({
+            url : '{% url "assignusers_view" %}', 
+            method : 'POST',
+            csrfmiddlewaretoken : csrftoken,
+            headers : {'X-CSRFToken' : csrftoken},
+            data : JSON.stringify({'action':userTenantInfo['action'], 'user_id':userTenantInfo['userId'], 'tenant_id':userTenantInfo['tenantId'], 'role_id':userTenantInfo['roleId']}),
+            dataType: 'json',
+            success: function(result) {
+              if(result.status_code >= 200 && result.status_code < 207) { //when error not occurred
+                //if user is same as logged-in user, reload the page as tenancies are updated for same user
+                if(USER_ID == userTenantInfo['userId']) {
+                  bootbox.alert('User info updated.', function(onEvent){ 
+                    window.location.reload();
+                  }); 
+                }
+                else { //if user is different, update the window variable with user tenant role changes
+                  updateUserInfo(userElem, result.user_id, userTenantInfo); 
+
+                  bdStopSpin();
+                  var message = 'User '+userElem.find('label').html()+' is ';
+                  if(userTenantInfo['action'] == 'add_usertenant') {
+                    message += 'added as ';
+                  } else {
+                    message += 'updated as ';
+                  }
+                  message += newRoleInfo.name+' of '+USER_TENANT+' tenant';
+                  bootbox.alert(message, function(onEvent){ return; });
+                  
+                  userElem.find('.user-info').html(newRoleInfo.badgeValue).show();
+                  //clear the assignment section
+                  clearAssignment();
+                }
+              }
+              else { //when error occurred then reload the page
+                bdStopSpin();
+                bootbox.alert(result.reason, function(onEvent){ 
+                  bdStartSpin();
+                  window.location.reload();
+                });
+              } 
+            },
+            error: function(result) {
+              bdStopSpin();
+              bootbox.alert('Error occurred while processing AJAX request', function(onEvent){ return; });
+            }
+          });
+
+        });
+
+        //handle the remove tenant
+        $(document).on('click', '#removeTenant', function(){
+
+          //confirm when removing the tenancy for user 
+          bootbox.confirm('Do you want to remove the tenancy for selected user ?', function(onEvent){
+            //if user selected yes, then do AJAX request for same
+            if(onEvent) { 
+              var userElem = $('ul.users-list li.selected'),
+              newRoleInfo = getRoleInfo('byId', $('input[name="role-input"]:checked').attr('id'));
+
+              //sending request to update the backend
+              var userTenantInfo = { 'action':'remove_usertenant', 'userId':getJsonId(userElem.attr('id')), 'tenantId': USER_TENANT_ID, 'roleId':newRoleInfo.id };
+              bdStartSpin();
+              $.ajax({
+                url : '{% url "assignusers_view" %}',
+                method : 'POST',
+                csrfmiddlewaretoken : csrftoken,
+                headers : {'X-CSRFToken' : csrftoken},
+                data : JSON.stringify({'action':userTenantInfo['action'], 'user_id':userTenantInfo['userId'], 'tenant_id':userTenantInfo['tenantId'], 'role_id':userTenantInfo['roleId']}),
+                dataType: 'json',
+                success: function(result) {
+                  if(result.status_code >= 200 && result.status_code < 207) { //when error not occurred
+                    //if user is same as logged-in user, reload the page as tenancies are updated for same user
+                    if(USER_ID == userTenantInfo['userId']) {
+                      bootbox.alert('User info updated.', function(onEvent){ 
+                        window.location.reload();
+                      }); 
+                    }
+                    else { //if user is different, remove user tenant info and update user item with no role
+                      userTenantInfo['tenantsCount'] = result.user_tenants_count;
+                      var resultInfo = updateUserInfo(userElem, result.user_id, userTenantInfo);
+                      
+                      bdStopSpin();
+                      var message = 'User '+resultInfo['username']+' is revoked as '+newRoleInfo.name+' from '+USER_TENANT+' tenant';
+                      bootbox.alert(message, function(onEvent){ return; });
+
+                      //clear the assignment section
+                      clearAssignment();
+                    }
+                  }
+                  else { //when error occurred then reload the page
+                    bdStopSpin();
+                    bootbox.alert(result.reason, function(onEvent){ 
+                      bdStartSpin();
+                      window.location.reload();
+                    });
+                  }
+                },
+                error: function(result) {
+                  bdStopSpin();
+                  bootbox.alert('Error occurred while processing AJAX request', function(onEvent){ return; });
+                }
+              });  
+            }
+          });
+          
+        });
+
+      }  
+
+      //enabling and disabling the assignment actions/buttons
+      $(document).on('change', '.assignment input[name="role-input"]', function(){
+        var tenantId = getJsonId($('ul.tenants-list li.selected').attr('id')), 
+        userTenants = get_tenant_list($('ul.users-list li.selected').attr('id')), 
+        roleId = null;
+        if(!$.isEmptyObject(userTenants)) {
+          for(var i = 0, len = userTenants.length; i < len; i++) {
+            if(userTenants[i]['id'] == tenantId) {
+              roleId = userTenants[i]['role'];
+              break;
+            }
+          }
+          if(roleId != null) {
+            if(getJsonId($(this).attr('id')) != roleId) {
+              $('.assignment-action button').removeClass('inactive').addClass('active');
+              $('.assignment .remove-tenant').hide();
+            }
+            else {
+              $('.assignment-action button').removeClass('active').addClass('inactive');
+              $('.assignment .remove-tenant').show();
+            }
+            return;
+          }
+        } 
+        $('.assignment-action button').removeClass('inactive').addClass('active');  
+      });
+
+      //handle the cancel role changes
+      $(document).on('click', '#cancelEditRole.active', function(){
+        
+        if(USER_ROLE == 'Site Admin') {
+          $('ul.tenants-list li.selected').removeClass('selected');
+          resetAssignment(); //reset the assignment section
+        }
+        else {
+          $('ul.users-list li.selected').removeClass('selected');
+          clearAssignment(); //clear the assignment section
+        }
+
+      });
+
+  });
+</script>
+{% endblock %}

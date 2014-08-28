@@ -1,0 +1,397 @@
+{% extends 'base.html' %}
+{% load url from future %}
+{% block main_content %}
+<div class="span12">
+   {% if create_dco == "active" %}
+   <form class="bds-form form-horizontal" id="createdco" enctype="multipart/form-data" action='{% url "createdco_view" %}' method="POST">{% csrf_token %}
+   {% else %}
+   <form class="bds-form form-horizontal" id="createdco" enctype="multipart/form-data" action='{% url "editdco_view" %}' method="POST">{% csrf_token %}
+   {% endif %}
+      
+      {% include 'dco.html' with dco=dco eltId="" %}
+
+      <div class="control-group">
+         <label class="control-label">Path <i class='icon-question-sign' id='path_info' data-rel='tooltip' data-placement='top'></i></label>
+         <div class="controls ui-widget-content">
+            <input type="text" name="path" value="" id="path" value="{{dco.path}}" spellcheck="false"/>
+            <div class="input-append">
+               <span class="btn btn-small dco_browse" id="dco_browse">Browse</span>
+            </div>
+         </div>
+      </div>
+
+      <input type="text" name="id" name="id" id="id" value="{{dco.id}}" style="display:none;"/>
+
+      <div class="form-actions">
+         <button type="button" id="form-submit" class="pull-left btn btn-primary" type="submit"><i class="icon-ok"></i> Submit</button>
+      </div>
+      <input type="text" name="port" id="port" style="visibility:hidden" value="{{dco.port}}"/>
+   </form>
+</div>
+</script>
+{% endblock %}
+{% block page_script %}
+<script id="source" language="javascript" type="text/javascript">
+   $(function() {
+       $('#path').val('{{dco.path}}');
+       var initial_type = '{{dco.type}}';
+       $('#type').val(initial_type);
+       var dco_browse_type = 'dco_browse'; 
+       var show_popover = true;
+
+       setTypeChoice();
+
+       $('#type').change(function () {
+           if (!show_popover) {
+               // Already a popover is being shown. so hide that first
+               $('#' + dco_browse_type).popover("hide");
+               show_popover = true;
+           }
+               
+           setTypeChoice();
+       }).trigger('change');
+
+       function setTypeChoice() {
+           val = $("#type option:selected").val(); 
+           if (val == "file") {
+               $('.gluster-form').hide();
+               $('.hdfs-form').hide();
+               $('.nfs-form').hide();
+               $('.swift-form').hide();
+           }
+           else if (val == "gluster") {
+               $('.hdfs-form').hide();
+               $('.nfs-form').hide();
+               $('.swift-form').hide();
+               $('.gluster-form').show();
+           }
+           else if (val == "hdfs") {
+               $('.gluster-form').hide();
+               $('.nfs-form').hide();
+               $('.swift-form').hide();
+               $('.hdfs-form').show();
+           }
+           else if (val == "nfs") {
+               $('.gluster-form').hide();
+               $('.hdfs-form').hide();
+               $('.swift-form').hide();
+               $('.nfs-form').show();
+           }
+           else if (val == "swift") {
+               $('.gluster-form').hide();
+               $('.hdfs-form').hide();
+               $('.nfs-form').hide();
+               $('.swift-form').show();
+           }
+       }
+
+       $('input[id="swift_secure"]').click(function() {
+           $('#swift_secure').prop("checked", true);
+           $('#swift_notsecure').prop("checked", false);
+       });
+
+       $('input[id="swift_notsecure"]').click(function() {
+           $('#swift_secure').prop("checked", false);
+           $('#swift_notsecure').prop("checked", true);
+       });
+
+       function reInitializePopover() {
+
+           $('#' + dco_browse_type).popover({
+               trigger: 'manual',
+               callback: dcoPopoverCallback,
+               animation: true,
+               html: true,
+               title: 'Data Connector Browser&nbsp&nbsp&nbsp&nbsp&nbsp<button id="popoverclose" type="button" class="close">    &times;</button>',
+               placement: 'right',
+               content:
+                   function() {
+                       return '<div id="tree"></div>';
+                   }
+           }).data('popover').tip().addClass('dco-popover');
+           $('#' + dco_browse_type).popover("show");
+           loaddcoTree();
+           $('#popoverclose').on('click', function(){
+               $('#' + dco_browse_type).popover("hide");
+               show_popover = true;
+           });
+      }
+
+      $(window).resize(function() {
+          if (!show_popover) {
+              reInitializePopover();
+          }
+      });
+
+
+       $('.dco_browse').click(function() {
+           if (!show_popover) {
+               $('#' + dco_browse_type).popover("hide");
+               show_popover = true;
+               return;
+           }
+
+           // Toggle for next clicke
+           show_popover = false;
+
+           reInitializePopover();
+       });
+
+       function reloaddcoTree(relativePath) {
+           // Based on DSOG selected, add nodes..
+           var rootNode = $("#tree").dynatree("getRoot");
+           if (rootNode != null) {
+               // First remove all the nodes in the tree.
+               rootNode.removeChildren();
+           }
+
+           // Make an ajax query based on the info provided and may be path info
+           // as well.
+           var data = {
+               operation: 'browse_dco_test',
+               name: $('#name').val(),
+               description: $('#description').val(),
+               type: $("#type option:selected").val(),
+               host: $('#host').val(),
+               backup_host: $('#backup_host').val(),
+               port: $('#port').val(),
+               volume: $('#volume').val(),
+               account: $('#account').val(),
+               container: $('#container').val(),
+               share: $('#share').val(),
+               secure:  $("#swift_secure:checked") ? true : false,
+               path: relativePath
+           };
+
+           $.ajax({
+               url: '{% url "managedco_view" %}',
+               method: 'post',
+               contentType: "application/json; charset=utf-8",
+               data: JSON.stringify(data),
+               csrfmiddlewaretoken: csrftoken,
+               headers: {'X-CSRFToken' : csrftoken},
+               success: function(list) {
+                        var res = [];
+                        for (var i = 0; i < list.length; i++) {
+                            res.push({title: list[i].title,
+                                     isFolder: list[i].isFolder,
+                                     isLazy: list[i].isFolder ? true : false,
+                                     path: list[i].path});
+                        }
+                        rootNode.addChild(res);
+               },
+               error: function() {
+               }
+           });
+       }
+
+       function loaddcoTree() {
+           $("#tree").dynatree({
+               title: "Data Connector Browser",
+               onActivate: function(node) {
+                   var path = node.data.path;
+                   $('#path').val(path);
+               },
+
+               onDeactivate: function(node) {
+               },
+
+               onLazyRead: function(node){
+                   var data = {
+                       operation: 'browse_dco_test',
+                       name: $('#name').val(),
+                       description: $('#description').val(),
+                       type: $("#type option:selected").val(),
+                       host: $('#host').val(),
+                       backup_host: $('#backup_host').val(),
+                       port: $('#port').val(),
+                       volume: $('#volume').val(),
+                       account: $('#account').val(),
+                       container: $('#container').val(),
+                       share: $('#share').val(),
+                       secure:  $("#swift_secure:checked") ? true : false,
+                       path: node.data.path
+                   };
+
+                   $.ajax({
+                       url: '{% url "managedco_view" %}',
+                       method: 'post',
+                       contentType: "application/json; charset=utf-8",
+                       data: JSON.stringify(data),
+                       csrfmiddlewaretoken: csrftoken,
+                       headers: {'X-CSRFToken' : csrftoken},
+                       success: function(list) {
+                           var res = [];
+                      
+                           for (var i = 0; i < list.length; i++) {
+                               if(list[i].isFolder) { //don't allow to see file under any folder
+                                   res.push({title: list[i].title,
+                                            isFolder: list[i].isFolder,
+                                            isLazy: list[i].isFolder,
+                                            path: list[i].path});
+                               }
+                           }
+                      
+                           node.setLazyNodeStatus(DTNodeStatus_Ok);
+                           node.addChild(res);
+                       }
+                   });
+               },
+
+               dnd: {
+                   onDragStart: function(node) {
+                       return false;
+                   },
+                   onDragStop: function(node) {
+                   },
+                   onDragOver: function(node) {
+                   },
+               },
+           });
+           reloaddcoTree($('#path').val());
+       }
+
+       $('.port').change(function(){
+           // Setting hidden field for post processing
+           $('#port').val($(this).val());
+       });
+
+       var orig_name = '{{dco.name|safe}}';
+       $.validator.addMethod("validName", function(value, element) {
+           if (orig_name == value)
+               return true;
+           if (value == "bluedata-defaultfs") {
+               return false;
+           }
+           var regexp = /^[0-9A-Za-z\-_\.!~\*'\(\)\$,;:@&=\+]+$/
+           if (!value.match(regexp)) {
+               return false;
+           }
+           var dco_list = {{dco_list|safe}};
+           for (i = 0; i < dco_list.length; i++) {
+               if (dco_list[i].name == value) {
+                   return false;
+               }
+           }
+           return true;
+       }, "Invalid Data Connector Name. Please specify a different one");
+
+       $.validator.addMethod("validGluster", function(value, element) {
+           if ($('#type').val() == 'gluster') {
+               if (($('#host').val() == '') ||
+                     ($('#volume').val() == '')) {
+                   return false;
+               }
+           }
+           return true;
+       });
+
+       $.validator.addMethod("validHDFS", function(value, element) {
+           if ($('#type').val() == 'hdfs') {
+               if ($('#host').val() == '') {
+                   return false;
+               }
+           }
+           return true;
+       });
+
+       $.validator.addMethod("validNFS", function(value, element) {
+           if ($('#type').val() == 'nfs') {
+               if (($('#host').val() == '') ||
+                     ($('#share').val() == '')) {
+                   return false;
+               }
+           }
+           return true;
+       });
+
+       $.validator.addMethod("validSwift", function(value, element) {
+           if ($('#type').val() == 'swift') {
+               if (($('#host').val() == '') ||
+                     ($('#container').val() == '') ||
+                     ($('#account').val() == '')) {
+                   return false;
+               }
+           }
+           return true;
+       });
+
+       $('#createdco').validate({
+           errorElement: 'span',
+           errorClass: 'help-inline',
+           focusInvalid: false,
+           rules: {
+               name: {
+                   required: true,
+                   minlength: 1,
+                   maxlength: 32,
+                   validName: true
+               },
+               host: 'required',
+               volume: {
+                   required: true,
+                   validGluster: true,
+               },
+               share: {
+                   required: true,
+                   validNFS: true,
+               },
+               account: {
+                   required: true,
+                   validSwift: true,
+               },
+               container: {
+                   required: true,
+                   validSwift: true,
+               }
+           },
+
+           messages: {
+               name: {
+                   required: "Please provide a valid data connector name.",
+                   minlength: $.format("Data Connector name must be atleast {0} characters"),
+                   maxlength: $.format("Data Connector  name must not exceed {0} characters")
+               },
+               host: "Please provide a valid host.",
+               backup_host: "Optionally provide a standby HDFS NameNode host.",
+
+               volume: "Please provide a valid volume.",
+
+               share: "Please provide a valid share",
+
+               account: "Please provide a valid account.",
+               container: "Please provide a valid container.",
+           },
+
+           invalidHandler:  function (event, validator) {
+               $('.alert-error', $('#createjob')).show();
+           },
+
+           highlight: function (e) {
+               $(e).closest('.control-group').removeClass('info').addClass('error');
+           },
+
+           success: function (e) {
+               $(e).closest('.control-group').removeClass('error').addClass('info');
+               $(e).remove();
+           },
+             
+           errorPlacement: function (error, element) {
+               bdStopSpin();
+               if(element.is(':checkbox') || element.is(':radio')) {
+                   var controls = element.closest('.controls');
+                   if(controls.find(':checkbox,:radio').length > 1) controls.append(error);
+                   else error.insertAfter(element.nextAll('.lbl').eq(0));
+               }
+               else if (element.is('#path')) {
+                   element.next().after(error);
+               }
+               else error.insertAfter(element);
+           },
+           submitHandler: function (form) {
+              bdsFormSubmit(form, "Failed to create data connector", '{% url "managedco_view" %}');
+           }
+       });
+   });
+</script>
+{% endblock %}

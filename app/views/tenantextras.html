@@ -1,0 +1,233 @@
+{% extends 'base.html' %}
+{% load url from future %}
+{% block main_content %}
+<div class="span12">
+  
+  <div class="widget-box transparent no-border">
+     <div class="widget-header widget-header-large no-border">
+        <h4></h4>
+        <div class="widget-toolbar no-border">
+           <a href='{% url "assignusers_view" %}?tenant_id={{ tenant_id }}'>
+              <button class="btn btn-success btn-small table_assign" >
+                 <i class="icon-plus"></i>
+                 Assign
+              </button>
+           </a>
+           <a href='#'>
+              <button class="btn btn-danger btn-small table_revoke">
+                 <i class="icon-minus"></i>
+                 Revoke
+              </button>
+           </a>
+        </div>
+     </div>
+  </div>
+
+  <table id="tenant_extras" class="table table-striped table-bordered table-hover bd-table" >
+     {% include 'table_headers.html' %}
+     <tbody>
+        {% for row in user_list %}
+        <tr>
+           {% if tenant_name != "Site Admin" or row.name != "bdsadmin" %}
+           <td class='center'>
+              <label><input type='checkbox'/><span class="lbl"></span></label>
+           </td>
+           {% else %}
+           <td class='center'>
+           </td>
+           {% endif %}
+           <td style="display:none">{{ row.id }}</td>
+           <td style="display:none">{{ row.role }}</td>
+           <td>{{ row.name }}</td>
+           <td>{{ row.description }}</td>
+           <td>{{ row.role_name }}</td>
+           <td>
+              <div class="visible-desktop action-buttons tenant-actions"></div>
+           </td>
+        </tr>
+        {% endfor %}
+     </tbody>
+  </table>
+
+</div>
+{% endblock %}
+
+{% block page_script %}
+<script id="source" language="javascript" type="text/javascript">
+   function revokeCallback(name, status, details) {
+       if (status == "success") {
+           bdNotify('User ( ' + name + ' )' + ' successfully revoked', "success");
+       }
+       else {
+           bdNotify('Failed to revoke the user ( ' + name + ' )</br>' + details, "failed");
+       }
+   }
+   var tenant_name = '{{tenant_name}}';
+
+   registerDataTable('#tenant_extras',
+                     '#',
+                     '#',
+                     '#',
+                     revokeCallback,
+                     '.table_delete',
+                     {{headers|safe}}, {{headers|length}},
+                     1, 4);
+
+   /* setup row action buttons...*/
+   for (var i = 0; i < oTable[0].fnGetData().length; i++) {
+       var rowData = oTable[0].fnGetData(i);
+       if (tenant_name != "Site Admin" || rowData[3] != "bdsadmin") {
+           var button = '<div class="visible-desktop action-buttons tenant-actions">';
+
+           button += '<a class="red row_revoke" data-rel="tooltip" title="Revoke" data-placement="bottom">' +
+                     '<i class="icon-minus bigger-120"></i>' +
+                     '</a>';
+           button += '</div>';
+
+           oTable[0].fnUpdate(button, i, 6, false);
+       }
+   }
+
+   $('#tenant_extras').on('click', '.tenant-actions', function(event) {
+        console.log("Got a click on revoke action");
+        var currentRow = $(this).closest('tr');
+
+        revokeRow(currentRow)
+
+   });
+
+   $('.table_revoke').on('click', function() {
+       var table = $(this).closest('table');
+       var revokeRowData = new Array();
+       $('tbody input[type="checkbox"]', '#tenant_extras').each(function() {
+           if ($(this).is(':checked')) {
+               revokeRowData.push(this);
+           }
+       });
+
+       if (revokeRowData.length == 0) {
+           return;
+       }
+
+       console.log("Got %d elements to revoke", revokeRowData.length);
+
+       // Invoke the delete function that does ajax functionality.
+       bootbox.confirm("Confirm Revoke. This action cannot be undone", function(result) {
+           if (result) {
+               bdStartSpin();
+               revokeRows(revokeRowData, 0);
+           }
+       });
+   });
+
+   function revokeRow(currentRow) {
+       var rowData = $('#tenant_extras').dataTable().fnGetData(currentRow[0]);
+
+       /* We have to send a post request to do an edit operation */
+       var data = {
+           operation: 'revoke',
+           user: rowData[1],
+           tenant: '{{ tenant_id }}',
+           role: rowData[2],
+       };
+
+       bootbox.confirm("Confirm Revoke. This action cannot be undone", function(result) {
+           if (result) {
+               bdStartSpin();
+               $.ajax({
+                   url: '{% url "tenantextras_view" %}',
+                   method: 'post',
+                   contentType: "application/json; charset=utf-8",
+                   data: JSON.stringify(data),
+                   csrfmiddlewaretoken: csrftoken,
+                   headers: {'X-CSRFToken' : csrftoken},
+                   success: function(result) {
+                       if (result.status_code >= 200 && result.status_code < 207) {
+                           revokeCallback(rowData[3], "success", null);
+                           location.reload(true);
+                           bdStopSpin();
+                       }
+                       else {
+                           console.log("Got an error message ", result);
+                           msg = getErrorMessage(result.status_code, result.reason);
+                           if (result.status_code == 408) {
+                               bootbox.alert(msg, function(res) {
+                                   window.location.href = result.redirect;
+                                   return;
+                               });
+                           }
+                           else {
+                               revokeCallback(rowData[3], "failed", msg);
+                               bdStopSpin();
+                           }
+                       }
+                       return false;
+                   },
+                   error: function(result) {
+                       console.log("Got an error message");
+                       revokeCallback(rowData[3], "failed", "Got an exception while performing the operation");
+                       bdStopSpin();
+                       return false;
+                   }
+               });
+           }
+       });
+   }
+
+   function revokeRows(revokeRowData, i)
+   {
+       var currentRow = $(revokeRowData[i]).closest('tr');
+       var rowData = $('#tenant_extras').dataTable().fnGetData(currentRow[0]);
+
+       if (i == revokeRowData.length) {
+           location.reload(true);
+           bdStopSpin();
+           return;
+       }
+
+       console.log("Trying to revoke (%d) ID::%s Name:%s", i, rowData[1], rowData[3]);
+
+       var data = {
+           operation: 'revoke',
+           user: rowData[1],
+           tenant: '{{ tenant_id }}',
+           role: rowData[2],
+       };
+
+       $.ajax({
+           url: '{% url "tenantextras_view" %}',
+           method: 'post',
+           contentType: "application/json; charset=utf-8",
+           data: JSON.stringify(data),
+           csrfmiddlewaretoken: csrftoken,
+           headers: {'X-CSRFToken' : csrftoken},
+           success: function(result) {
+               if (result.status_code >= 200 && result.status_code < 207) {
+                   revokeCallback(rowData[3], "success", null);
+               }
+               else {
+                   msg = getErrorMessage(result.status_code, result.reason);
+                   if (i+1 == revokeRowData.length) {
+                       if (result.status_code == 408) {
+                           bootbox.alert(msg, function(res) {
+                               window.location.href = result.redirect;
+                               return;
+                           });
+                       }
+                   }
+                   revokeCallback(rowData[3], "failed", msg);
+               }
+               revokeRows(revokeRowData, i+1);
+               return false;
+           },
+
+           error: function(result) {
+               revokeCallback(rowData[3], "failed", "Got an exception while performing the operation");
+               revokeRows(revokeRowData, i+1);
+               return false;
+           }
+       });
+    }
+
+</script>
+{% endblock %}

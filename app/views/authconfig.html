@@ -1,0 +1,304 @@
+{% extends 'base.html' %}
+{% load url from future %}
+{% block main_content %}
+<div class="row-fluid">
+	<form class="bds-form form-horizontal" id="authconfig" action='{% url "auth_view" %}' enctype="multipart/form-data" method="POST">{% csrf_token %}
+       <div class="control-group">
+          <label class="control-label">Authentication Type</label>
+          <div class="controls">
+             <select name="auth_type" id="auth_type">
+                {% for type in auth_types %}
+                <option name='{{ type.0 }}' value='{{ type.1 }}'>{{ type.1 }}</option>
+                {% endfor %}
+                <option name='{{ type.0 }}' value='undefined'>None</option>
+             </select>
+          </div>
+       </div>
+
+       <div class="ldap-form" style="display:block;">
+          <div class="control-group ldap-form">
+             <label class="control-label">LDAP Host</label>
+             <div class="input controls">
+                <input type="text" name="ldap_host" id="ldap_host" value="{{ auth_params.ldap_host }}" />
+             </div>
+          </div>  
+
+          <div class="control-group ldap-form">
+             <label class="control-label">User Attribute</label>
+             <div class="input controls">
+                <input type="text" name="ldap_user_attr" id="ldap_user_attr" value="{{ auth_params.ldap_user_attr }}" placeholder="cn"/>
+             </div>
+          </div>
+
+          <div class="control-group ldap-form">
+             <label class="control-label">User Subtree DN</label>
+             <div class="input controls">
+                <input type="text" name="ldap_user_subtree" id="ldap_user_subtree" value="{{ auth_params.ldap_user_subtree }}"  placeholder="ou=People,dc=example,dc=com"/>
+             </div>
+          </div>
+       </div>
+
+       <div class="kerb-form" style="display:none;">
+          <div class="control-group">
+             <label class="control-label">Host</label>
+             <div class="input controls">
+                <input type="text" name="kerb_host" id="kerb_host"  value="{{ auth_params.kerb_host }}" />
+             </div>
+          </div>  
+
+          <div class="control-group">
+             <label class="control-label">Realm</label>
+             <div class="input controls">
+                <input type="text" name="kerb_realm" id="kerb_realm"  value="{{ auth_params.kerb_realm }}" />
+             </div>
+          </div>  
+
+
+          <div class="control-group">
+             <label class="control-label">Instance</label>
+             <div class="input controls">
+                <input type="text" name="kerb_instance" id="kerb_instance"  value="{{ auth_params.kerb_instance }}" />
+             </div>
+          </div>
+       </div>
+
+       <div class="ad-form" style="display:none;">
+          <div class="control-group">
+             <label class="control-label">AD Host</label>
+             <div class="input controls">
+                <input type="text" name="ad_host" id="ad_host"  value="{{ auth_params.ad_host }}" />
+             </div>
+          </div>  
+
+          <div class="control-group">
+             <label class="control-label">User Attribute</label>
+             <div class="input controls">
+                <input type="text" name="ad_user_attr" id="ad_user_attr"  value="{{ auth_params.ad_user_attr }}" placeholder="cn"/>
+             </div>
+          </div>  
+
+          <div class="control-group">
+             <label class="control-label">User Subtree DN</label>
+             <div class="input controls">
+                <input type="text" name="ad_user_subtree" id="ad_user_subtree"  value="{{ auth_params.ad_user_subtree }}" placeholder="ou=People,dc=example,dc=com"/>
+             </div>
+          </div>
+       </div>
+
+      <div class="form-actions">
+         <button type="button" id="form-submit" class="pull-left btn btn-primary" type="submit"><i class="icon-ok"></i> Submit</button>
+      </div>
+   </form>
+</div>
+
+{% endblock %}
+{% block page_script %}
+
+<script type="text/javascript">
+   $(function() {
+       function setSelect(s, v) {
+           for ( var i = 0; i < s.options.length; i++ ) {
+               if (s.options[i].value == v) {
+                   s.options[i].selected = true;
+                   switch (v) {
+                       case 'LDAP':
+                           $('.ldap-form').show();
+                           $('.kerb-form').hide();
+                           $('.ad-form').hide();
+                           break;
+
+                       case 'Kerberos':
+                           $('.ldap-form').hide();
+                           $('.kerb-form').show();
+                           $('.ad-form').hide();
+                           break;
+
+                       case 'Active Directory':
+                           $('.ldap-form').hide();
+                           $('.kerb-form').hide();
+                           $('.ad-form').show();
+                           break;
+
+                       case 'undefined':
+                           $('.ldap-form').hide();
+                           $('.kerb-form').hide();
+                           $('.ad-form').hide();
+                           break;
+                   }
+                   return;
+               }
+           }
+       }
+
+       var ext_auth = '{{external_auth_type|safe}}';
+       setSelect(document.getElementById('auth_type'), ext_auth);
+
+       $('#auth_type').change(function(){
+           setSelect(document.getElementById('auth_type'), ($(this).val()));
+       });
+
+       $('#authconfig').validate({
+           onfocusout: false,
+           onkeyup: false,
+           onclick: false,
+
+           errorElement: 'span',
+           errorClass: 'help-inline',
+           focusInvalid: false,
+           rules: {
+               ldap_host: {
+                   required: {
+                       depends: function() {
+                           if ($('#auth_type').val() == 'LDAP') {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+               ldap_user_attr: {
+                   required: {
+                       depends: function() {
+                           if ($('#auth_type').val() == 'LDAP') {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+               ldap_user_subtree: {
+                   required: {
+                       depends: function() {
+                           if ($('#auth_type').val() == 'LDAP') {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+
+               kerb_host: {
+                   required: {
+                       depends: function() {
+                           if ($('#auth_type').val() == 'Kerberos') {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+               kerb_instance: {
+                   required: {
+                       depends: function() {
+                           if ($('#auth_type').val() == 'Kerberos') {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+               kerb_realm: {
+                   required: {
+                       depends: function() {
+                           if ($('#auth_type').val() == 'Kerberos') {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+
+               ad_host: {
+                   required: {
+                       depends: function() {
+                           if ($('#auth_type').val() == 'Active Directory') {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+
+               ad_user_attr: {
+                   required: {
+                       depends: function() {
+                           if ($('#auth_type').val() == 'Active Directory') {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+               ad_user_subtree: {
+                   required: {
+                       depends: function() {
+                           if ($('#auth_type').val() == 'Active Directory') {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+           },
+
+           messages: {
+               ldap_host: "Provide a valid hostname/ipaddress for LDAP Server",
+               ldap_user_attr: "Provide the user attribute used for login (cn/uid)",
+               ldap_user_subtree: "Provide a valid sub tree for DN for searching",
+
+               kerb_host: "Provide a valid hostname/ipaddress for Kerberos Server",
+               kerb_realm: "Provide the kerberos realm to be used for authentication",
+               kerb_instance: "Provide the kerberos instance to be used for authentication",
+
+               ad_host: "Provide a valid hostname/ipaddress for Active Directory Server",
+               ad_user_attr: "Provide the user attribute used for login (cn/uid)",
+               ad_user_subtree: "Provide a valid sub tree for DN for searching",
+           },
+
+           invalidHandler:  function (event, validator) { //display error alert on form submit
+               $('.alert-error', $('.login-form')).show();
+           },
+
+           highlight: function (e) {
+               $(e).closest('.control-group').removeClass('info').addClass('error');
+           },
+
+           success: function (e) {
+               $(e).closest('.control-group').removeClass('error').addClass('info');
+               $(e).remove();
+           },
+             
+           errorPlacement: function (error, element) {
+               bdStopSpin();
+               if(element.is(':checkbox') || element.is(':radio')) {
+                   var controls = element.closest('.controls');
+                   if(controls.find(':checkbox,:radio').length > 1) controls.append(error);
+                   else error.insertAfter(element.nextAll('.lbl').eq(0));
+               } 
+               else error.insertAfter(element);
+           },
+           submitHandler: function (form) {
+               bdsFormSubmit(form, "Failed to setup authentication", '{% url "assignusers_view" %}');
+           },
+       });
+   });
+</script>
+{% endblock %}

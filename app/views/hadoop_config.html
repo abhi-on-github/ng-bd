@@ -1,0 +1,41 @@
+{% block hadoop_config_form %}
+{% load url from future %}
+<div class="control-group" id="adv-settings-block" style="display:none;">
+   <label class="control-label">
+      <a href='#' class="icon-chevron-right" id="adv-settings-dropdown">
+         Advanced Settings
+      </a>
+      <i class='icon-question-sign' id='adv-settings' data-rel='tooltip' data-placement='top'></i>
+   </label>
+</div>
+
+<div class="tabbable" id="category-tabs" style="display:none;">
+   <ul class="nav nav-tabs padding-12 tab-color-blue background-blue">
+      <div id="nav-search" class="pull-right">
+         <span class="input-icon">
+            <input type="text" placeholder="Search ..." class="input-large ignore-button" id="param-search" autocomplete="off" style="color:black;" />
+            <i class="icon-search nav-search-icon"></i>
+         </span>
+
+         <span id="not-found-text" class="badge badge-important" style="display:none;">Not found</span>
+         <span class="pull-right">
+            <button class="btn btn-mini btn-light bigger ignore-button prev-next-buttons" id="prev-button">
+               <i class="icon-arrow-left"></i>
+               Prev
+            </button>
+
+            <button class="btn btn-mini bigger btn-yellow ignore-button prev-next-buttons" id="next-button">
+               Next
+               <i class="icon-arrow-right"></i>
+            </button>
+         </span>
+      </div>
+   </ul>
+
+   <div class="tab-content" id="sub-category">
+   </div>
+</div>
+{% endblock %}
+
+
+

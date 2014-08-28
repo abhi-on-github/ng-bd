@@ -1,0 +1,304 @@
+{% extends 'base.html' %}
+{% load url from future %}
+{% block main_content %}
+<div class="row-fluid" id='dashboardPage_member'>
+   <div class="row-fluid">
+
+      <div class="row-fluid">
+         <div class="span6 widget-container-span">
+            <div class="widget-box transparent">
+               <div class="widget-header widget-header-small">
+                  <h4 class="lighter"><i class="icon jobstatus-icon"></i> Jobs Status </h4>
+               </div>
+
+               <div class="widget-body" style="height:420px;">
+                  <div class="widget-main">
+                     <div id="id_jobcharts" style="height:400px;"></div> 
+                     <div id="barchart_tooltip" style="width:150 px;" class="hidden"></div>
+                  </div><!--/widget-main-->
+               </div><!--/widget-body-->
+            </div><!--/widget-box -->
+         </div>
+
+         <div class="span6 widget-container-span">
+            <div class="widget-box transparent">
+               <div class="widget-header widget-header-small widget-header-flat">
+                  <h4 class="lighter">
+                     <i class="icon job-icon"></i> Jobs
+                  </h4>
+               </div>
+               <div class="widget-body" style="height:405px;">
+                  <div class="widget-main no-padding">
+                     <div class="slim-scroll" data-height="400">
+                        <table class="table table-bordered table-striped" style="height:40px;" id='job_table'>
+                           <thead>
+                              <tr>
+                                 <th style='display:none;'>
+                                    Job UUID
+                                 </th>
+                                 <th>
+                                    <i class="icon-caret-right blue"></i>
+                                    Job Name
+                                 </th>
+                                 <th>
+                                    <i class="icon-caret-right blue"></i>
+                                    Job Status
+                                 </th>
+                              </tr>
+                           </thead>
+
+                           <tbody>
+                              {% for row in jobs_data %}
+                              <tr>
+                                 <td style="display:none">{{ row.uuid }}</td>
+                                 <td>{{ row.job_name }}</td>
+                                 <td>
+                                    {% if row.status == 'created' %}
+                                    <span class="center label label-info" style="width:60px">created</span>
+                                    {% elif row.status == 'starting' %}
+                                    <span class="center label label-info" style="width:60px">starting</span>
+                                    {% elif row.status == 'complete' %}
+                                    <span class="center label label-success" style="width:60px">complete</span>
+                                    {% elif row.status == 'running' %}
+                                    <span style="width:60px;" class="center label label-info" data-rel="popover" data-placement="bottom" data-content='Job Duration {{ row.duration }} seconds'>running</span>
+                                    {% elif row.status == 'delete_in_progress' %}
+                                    <span class="center label label-success" style="width:60px">deleting</span>
+                                    {% else %}
+                                    <span class="center label label-important" style="width:60px">error</span> 
+                                    {% endif %}
+                                 </td>
+                              </tr>
+                              {% endfor %}
+                           </tbody>
+                        </table>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+
+      <div class="row-fluid">
+         <div class="span6 widget-container-span">
+            <div class="widget-box transparent">
+               <div class="widget-header widget-header-small widget-header-flat">
+                  <h4 class="lighter">
+                     <i class="icon cluster-icon"></i> Clusters
+                  </h4>
+               </div>
+               <div class="widget-body" style="height:405px;">
+                  <div class="widget-main no-padding">
+                     <div class="slim-scroll" data-height="400">
+                        <table class="table table-bordered table-striped" id='cluster_table'>
+                           <thead>
+                              <tr>
+                                 <th style='display:none;'>
+                                    Cluster UUID
+                                 </th>
+                                 <th>
+                                    <i class="icon-caret-right blue"></i>
+                                    Cluster Name
+                                 </th>
+                                 <th>
+                                    <i class="icon-caret-right blue"></i>
+                                    Cluster Status
+                                 </th>
+                              </tr>
+                           </thead>
+
+                           <tbody>
+                              {% for row in cluster_data %}
+                              <tr>
+                                 <td style="display:none">{{ row.uuid }}</td>
+                                 <td>{{ row.cluster_name }}</td>
+                                 <td>
+                                    {% if row.status == 'ready' %}
+                                    <span class="center label label-success" style="width:60px;">ready</span>
+                                    {% elif row.status == 'created' %}
+                                    <span class="center label label-info" style="width:60px;">created</span>
+                                    {% elif row.status == 'starting' %}
+                                    <span class="center label label-info" style="width:60px;">starting</span>
+                                    {% elif row.status == 'updating' %}
+                                    <span class="center label label-info" style="width:60px;">updating</span>
+                                    {% elif row.status == 'delete_in_progress' %}
+                                    <span class="center label label-important" style="width:60px;">deleting</span>
+                                    {% else %}
+                                    <span style="width:60px;" class="center label label-important" data-rel="popover" data-placement="left" title="<i class='icon-warning-sign orange'></i> {{ row.status_message }}" data-content='{{ row.error_info }}'>error</span>
+                                 {% endif %}
+                                 </td>
+                              </tr>
+                              {% endfor %}
+                           </tbody>
+                        </table>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+
+         <div class="span6 widget-container-span">
+            <div class="widget-box transparent">
+               <div class="widget-header widget-header-small widget-header-flat">
+                  <h4 class="lighter">
+                     <i class="icon dco-icon"></i> Data Connectors
+                  </h4>
+               </div>
+               <div class="widget-body" style="height:350px;">
+                  <div class="widget-main no-padding">
+                     <div class="slim-scroll" data-height="345">
+                        <table class="table table-bordered table-striped" id="dco_table">
+                           <thead>
+                              <tr>
+                                 <th>
+                                    <i class="icon-caret-right blue"></i>
+                                    Name
+                                 </th>
+                                 <th>
+                                    <i class="icon-caret-right blue"></i>
+                                    Description
+                                 </th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              {% for dco in data_connectors %}
+                              <tr>
+                                 <td>{{ dco.name }}</td>
+                                 <td>{{ dco.description }}</td>
+                              </tr>
+                              {% endfor %}
+                           </tbody>
+                        </table>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div><!--row-fluid-->
+
+      <div class="row-fluid">
+         <div class="span6 widget-container-span">
+            <div class="widget-box transparent">
+               <div class="widget-header widget-header-small widget-header-flat">
+                  <h4 class="lighter">
+                     <i class="icon vnodes-icon"></i> Virtual Nodes
+                  </h4>
+               </div>
+               <div class="widget-body" style="height:350px;">
+                  <div id ="virtnode_spinner" style="position:relative;top:50%;left:50%" class="center"></div>
+                  <div class="widget-main no-padding">
+                     <div class="slim-scroll" data-height="345">
+                        <table  id='virtnode' class="table table-bordered table-striped" style="height:40px;">
+                           <thead>
+                              <tr>
+                                 <th>
+                                    <i class="icon-caret-right blue"></i>
+                                    Node Name
+                                 </th>
+                                 <th>
+                                    <i class="icon-caret-right blue"></i>
+                                    Public IP
+                                 </th>
+                                 <th>
+                                    <i class="icon-caret-right blue"></i>
+                                    Hadoop Distribution
+                                 </th>
+                                 <th>
+                                    <i class="icon-caret-right blue"></i>
+                                    Flavor
+                                 </th>
+                                 <th>
+                                    <i class="icon-caret-right blue"></i>
+                                    Status
+                                 </th>
+                              </tr>
+                           </thead>
+
+                           <tbody>
+                           </tbody>
+                        </table>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div><!--span6-->
+      </div><!--row-fluid-->
+   </div><!--row-fluid-->
+</div>
+{% endblock %}
+{% block page_script %}
+<style>
+
+rect {
+	-moz-transition: all 0.3s;
+	-webkit-transition: all 0.3s;
+	-o-transition: all 0.3s;
+	transition: all 0.3s;
+}
+
+rect:hover{
+	fill: orange;
+}
+
+</style>
+
+<script id="source" language="javascript" type="text/javascript">
+   $(document).ready(function() {
+
+       var setup_times = {{setup_times|safe}};
+       var run_times = {{run_times|safe}};
+       var map_times = {{map_times|safe}};
+       var reducer_times = {{reducer_times|safe}};
+       var num_map_tasks = {{num_map_tasks|safe}};
+       var num_reducer_tasks = {{num_reducer_tasks|safe}};
+       var show_highlighter = {{show_highlighter|safe}};
+       var job_names = {{job_names|safe}};
+
+       function updateData() {
+           updateDashboardVirtNodeList('{% url "dashboard_view" %}', false);
+       }
+
+       updateData();
+
+       var labels = [["Setup Time", "#1abc9c"], ["Run Time", "#3498db"]];
+       var axisText = ["Jobs", "Time (Seconds)"];
+       var elementId = '#id_jobcharts';
+
+       function hoverCallback(index) {
+           var html = '<p><strong>Job Name&nbsp;&nbsp;</strong><span>' + job_names[index] + '</span></p>';
+           html += '<p><strong>Setup Time&nbsp;&nbsp;</strong><span>' + parseInt(setup_times[index]/1000) + '</span></p>';
+           html += '<p><strong>Run Time&nbsp;&nbsp;</strong><span>' + parseInt(run_times[index]/1000) + '</span></p>';
+           html += '<p><strong>Mapper Time&nbsp;&nbsp;</strong><span>' + map_times[index] + '</span></p>';
+           html += '<p><strong>Reducer Time&nbsp;&nbsp;</strong><span>' + reducer_times[index] + '</span></p>';
+           html += '<p><strong>Num Mapper Tasks&nbsp;&nbsp;</strong><span>' + num_map_tasks[index] + '</span></p>';
+           html += '<p><strong>Num Reducer Tasks&nbsp;&nbsp;</strong><span>' + num_reducer_tasks[index] + '</span></p>';
+           return html;
+       }
+
+       var barData = [setup_times, run_times];
+
+       window.onresize = function(event) {
+           if (job_names.length != 0) {
+               d3.select("svg").remove();
+               d3Graph(elementId, barData, axisText, labels, hoverCallback);
+           }
+       };
+
+       if (barData[0].length != 0) {
+           d3Graph(elementId, barData, axisText, labels, hoverCallback);
+       }
+
+       //sync or updates datatables with backend
+       MANAGE_CLUSTER_URL = '{% url "managecluster_view" %}';
+       MANAGE_JOB_URL = '{% url "managejob_view" %}';
+
+       registerDashboardTable('cluster_table', 3);
+       registerDashboardTable('job_table', 3);
+       registerDashboardTable('dco_table', 2);
+
+       checkAndStartTimerCluster();
+       checkAndStartTimerJob();
+
+   });
+</script>
+{% endblock %}
+

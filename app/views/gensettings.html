@@ -1,0 +1,1692 @@
+{% extends 'base.html' %}
+{% load url from future %}
+{% block main_content %}
+<div class="row-fluid">
+   <div class="span12">
+      <div class="tabbable">
+         <ul class="nav nav-tabs tab-color-blue padding-12">
+            <li id="dco-settings_tab" class="active">
+               <a data-toggle="tab" href="#dco-settings">
+                  System Storage
+               </a>
+            </li>
+
+            <li id="auth-settings_tab">
+               <a data-toggle="tab" href="#auth-settings">
+                  User Authentication
+               </a>
+            </li>
+
+            <li id="ha-settings_tab">
+               <a data-toggle="tab" href="#ha-settings">
+                  HA Settings
+               </a>
+            </li>
+
+            <li id="tz-password_tab" style="display:none;">
+               <a data-toggle="tab" href="#tz-password">
+                  Password/Timezone
+               </a>
+            </li>
+            
+            <li id="lic-settings_tab" style="display:none;">
+               <a data-toggle="tab" href="#lic-settings">
+                  License
+               </a>
+            </li>
+         </ul>
+
+         <div class="tab-content">
+
+            <div id="dco-settings" class="tab-pane in active" style='margin-top:10px;'>
+               <form class="bds-form-1 form-horizontal" id="dcosettings"action='{% url "gensettings_view" %}' enctype="multipart/form-data" method="POST">{% csrf_token %}
+
+                  <div class="row-fluid">
+                     <div class="span6">
+                        <div class="control-group">
+                           <div class="controls">
+                              <label>
+                                 <input name="dcochange" id="dcochange" type="checkbox" class="ace ace-checkbox-2"  />
+                                 <span class="lbl" style="font-style:italic;">&nbsp;&nbsp;&nbsp;Change the root directory of automatically-created tenant data connectors</span>
+                              </label>
+                           </div>
+                        </div>
+
+                        <div id="dco-form">
+                           {% include 'dco.html' with dco=dco eltId="dco" %}
+                           <div class="control-group">
+                              <label class="control-label">Path <i class='icon-question-sign' id='path_info' data-rel='tooltip' data-placement='top'></i></label>
+                              <div class="controls ui-widget-content">
+                                 <input type="text" name="dcopath" value="" id="dcopath" value="{{dco.path}}" spellcheck="false"/>
+                              </div>
+                           </div>
+                        </div>
+                        
+                     </div>
+
+                     <div class="span6">
+                        <div class="control-group">
+                           <div class="controls">
+                              <label>
+                                 <input name="tmpfschange" id="tmpfschange" type="checkbox" class="ace ace-checkbox-2"  />
+                                 <span class="lbl" style="font-style:italic;">&nbsp;&nbsp;&nbsp;Change the root directory of temporary cluster filesystems</span>
+                              </label>
+                           </div>
+                        </div>
+
+                        <div id="tmpfs-form">
+                           {% include 'dco.html' with dco=tmpfs eltId="tmpfs" %}
+                           <div class="control-group">
+                              <label class="control-label">Path <i class='icon-question-sign' id='path_info' data-rel='tooltip' data-placement='top'></i></label>
+                              <div class="controls ui-widget-content">
+                                 <input type="text" name="tmpfspath" value="" id="tmpfspath" value="{{dco.path}}" spellcheck="false"/>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+                  
+                  <div class="form-actions">
+                     <button type="button" id="dco-settings-submit" class="pull-left btn btn-primary multi-form-submit" type="submit"><i class="icon-ok"></i> Submit</button>
+                  </div>
+                  <input type="text" name="dcoport" id="dcoport" style="visibility:hidden" value="{{dco.port}}"/>
+                  <input type="text" name="tmpfsport" id="tmpfsport" style="visibility:hidden" value="{{tmpfs.port}}"/>
+               </form>
+            </div>
+
+            <div id="auth-settings" class="tab-pane" style='margin-top:15px;'>
+               <form class="bds-form-1 form-horizontal" id="authconfig" action='{% url "auth_view" %}' enctype="multipart/form-data" method="POST">{% csrf_token %}
+                  <div class="control-group">
+                     <label class="control-label">Authentication Type <i class='icon-question-sign' id='auth_type_info' data-rel='tooltip' data-placement='top'></i></label>
+                     <div class="controls">
+                        <select name="auth_type" id="auth_type">
+                           {% for type in auth_types %}
+                           <option name='{{ type.0 }}' value='{{ type.1 }}'>{{ type.1 }}</option>
+                           {% endfor %}
+                           <option name='{{ type.0 }}' value='undefined'>None</option>
+                        </select>
+                     </div>
+                  </div>
+
+                  <div class="ldap-form" style="display:block;">
+                     <div class="control-group">
+                        <label class="control-label">LDAP Host <i class='icon-question-sign' id='ldap_host_info' data-rel='tooltip' data-placement='top'></i></label>
+                        <div class="input controls">
+                           <input type="text" name="ldap_host" id="ldap_host" value="{{ auth_params.ldap_host }}" />
+                        </div>
+                     </div>
+
+                     <div class="control-group">
+                        <label class="control-label">Port <i class='icon-question-sign' id='port_info' data-rel='tooltip' data-placement='top'></i></label>
+                        <div class="input controls">
+                           <input  type="text" name="ldap_port" id="ldap_port" class="ldap_port" value="{{ auth_params.ldap_port }}"/>
+                        </div>
+                     </div>
+
+                     <div class="control-group">
+                        <label class="control-label">User Attribute <i class='icon-question-sign' id='user_attribute_info' data-rel='tooltip' data-placement='top'></i></label>
+                        <div class="input controls">
+                           <input type="text" name="ldap_user_attr" id="ldap_user_attr" value="{{ auth_params.ldap_user_attr }}" placeholder="cn"/>
+                        </div>
+                     </div>
+
+                     <div class="control-group">
+                        <label class="control-label">User Subtree DN <i class='icon-question-sign' id='user_subtree_info' data-rel='tooltip' data-placement='top'></i></label>
+                        <div class="input controls">
+                           <input type="text" name="ldap_user_subtree" id="ldap_user_subtree" value="{{ auth_params.ldap_user_subtree }}"  placeholder="ou=People,dc=example,dc=com"/>
+                        </div>
+                     </div>
+                  </div>
+
+                  <div class="kerb-form" style="display:none;">
+                     <div class="control-group">
+                        <label class="control-label">Host <i class='icon-question-sign' id='host_info' data-rel='tooltip' data-placement='top'></i></label>
+                        <div class="input controls">
+                           <input type="text" name="kerb_host" id="kerb_host"  value="{{ auth_params.kerb_host }}" />
+                        </div>
+                     </div>  
+
+                     <div class="control-group">
+                        <label class="control-label">Realm <i class='icon-question-sign' id='realm_info' data-rel='tooltip' data-placement='top'></i></label>
+                        <div class="input controls">
+                           <input type="text" name="kerb_realm" id="kerb_realm"  value="{{ auth_params.kerb_realm }}" />
+                        </div>
+                     </div>  
+
+
+                     <div class="control-group">
+                        <label class="control-label">Instance <i class='icon-question-sign' id='instance_info' data-rel='tooltip' data-placement='top'></i></label>
+                        <div class="input controls">
+                           <input type="text" name="kerb_instance" id="kerb_instance"  value="{{ auth_params.kerb_instance }}" />
+                        </div>
+                     </div>
+                  </div>
+
+                  <div class="ad-form" style="display:none;">
+                     <div class="control-group">
+                        <label class="control-label">AD Host <i class='icon-question-sign' id='ad_host_info' data-rel='tooltip' data-placement='top'></i></label>
+                        <div class="input controls">
+                           <input type="text" name="ad_host" id="ad_host"  value="{{ auth_params.ad_host }}" />
+                        </div>
+                     </div>  
+
+                     <div class="control-group">
+                        <label class="control-label">Port <i class='icon-question-sign' id='port_info' data-rel='tooltip' data-placement='top'></i></label>
+                        <div class="input controls">
+                           <input  type="text" name="ad_port" id="ad_port" class="ad_port" value="{{ auth_params.ad_port }}"/>
+                        </div>
+                     </div>
+
+                     <div class="control-group">
+                        <label class="control-label">User Attribute <i class='icon-question-sign' id='user_attribute_info' data-rel='tooltip' data-placement='top'></i></label>
+                        <div class="input controls">
+                           <input type="text" name="ad_user_attr" id="ad_user_attr"  value="{{ auth_params.ad_user_attr }}" placeholder="cn"/>
+                        </div>
+                     </div>
+
+                     <div class="control-group">
+                        <label class="control-label">User Subtree DN <i class='icon-question-sign' id='user_subtree_info' data-rel='tooltip' data-placement='top'></i></label>
+                        <div class="input controls">
+                           <input type="text" name="ad_user_subtree" id="ad_user_subtree"  value="{{ auth_params.ad_user_subtree }}" placeholder="ou=People,dc=example,dc=com"/>
+                        </div>
+                     </div>
+                  </div>
+
+                  <div class="form-actions">
+                     <button type="button" id="auth-settings-submit" class="pull-left btn btn-primary multi-form-submit" type="submit"><i class="icon-ok"></i> Submit</button>
+                  </div>
+               </form>
+            </div>   
+
+            <div id="ha-settings" class="tab-pane" style='margin-top:15px;'>
+               <span id="enable-ha-form">
+               <form class="bds-form-1 form-horizontal" id="hasettings"  action='{% url "gensettings_view" %}' enctype="multipart/form-data" method="POST">{% csrf_token %}
+                  <div class="control-group">
+                     <div class="controls">
+                        <label>
+                           <input name="enableha_id" id="enableha_id" type="checkbox" class="ace ace-checkbox-2"  />
+                           <span class="lbl" id="enable-ha" style="font-style:italic;">&nbsp;&nbsp;&nbsp;Enable HA</span>
+                        </label>
+                     </div>
+                  </div>
+
+                  <div id="ha-block" style="display:none;">
+                     <div class="control-group">
+                        <label class="control-label">Cluster IP <i class='icon-question-sign' id='clusterip_info' data-rel='tooltip' data-placement='top'></i></label>
+
+                        <div class="controls">
+                           <input class="input-medium" name="clusterip" type="text" id="clusterip" />
+                        </div>
+                     </div>
+                     <div class="control-group">
+                        <label class="control-label">Shadow Controller <i class='icon-question-sign' id='shadow_controller_info' data-rel='tooltip' data-placement='top'></i></label>
+
+                        <div class="controls">
+                           <select name="shadow_controller" id="shadow_controller" class="input-xxlarge">
+                           </select>
+                        </div>
+                     </div>
+                     <div class="control-group">
+                        <label class="control-label">Arbiter Node <i class='icon-question-sign' id='arbiter_node_info' data-rel='tooltip' data-placement='top'></i></label>
+
+                        <div class="controls">
+                           <select name="arbiter_node" id="arbiter_node"  class="input-xxlarge">
+                           </select>
+                        </div>
+                     </div>
+                  </div>
+
+                  <div class="form-actions">
+                     <button type="button" id="ha-settings-submit" class="pull-left btn btn-primary  multi-form-submit" type="submit"><i class="icon-ok"></i> Submit</button>
+                  </div>
+               </form>
+               </span>
+               <span id="ha-progress">
+                  <div class="span12 widget-container" style="height:350px; max-height:350px; overflow-y:auto;">
+                     <h4 class="blue">HA Setup in progress.</h4>
+                     <p id="log_data" class="log_data">Loading</p>
+                     <div id="log_data_bottom"></div>
+                  </div>
+               </span>
+            </div>
+            
+            <div id="tz-password" class="tab-pane" style='margin-top:22px; display:none'>
+               <form class="bds-form-1 form-horizontal" id="gensettings"  action='{% url "gensettings_view" %}' enctype="multipart/form-data" method="POST">{% csrf_token %}
+                  <div class="control-group">
+                     <label class="control-label"> Change Timezone <i class='icon-question-sign' id='timezone_info' data-rel='tooltip' data-placement='top'></i></label>
+                     <div class="controls">
+                        <select class="chzn-select chosen-tag-input-style" name="timezone" id="timezone" data-placeholder="">
+                        </select>
+                     </div>
+                  </div>
+
+                  <div class="control-group">
+                     <div class="controls">
+                        <label>
+                           <input name="passwordchange" id="passwordchange" type="checkbox" class="ace ace-checkbox-2"  />
+                           <span class="lbl" style="font-style:italic;">&nbsp;&nbsp;&nbsp;Change Password</span>
+                        </label>
+                     </div>
+                  </div>
+
+                  <div id='password-form'>		 	
+                     <div class="control-group">
+                        <label class="control-label">New Password <i class='icon-question-sign' id='new_password_info' data-rel='tooltip' data-placement='top'></i></label>
+                        <div class="controls">
+                           <input type="password" name="password" id="password" class="input-large" placeholder="Password" readonly/>
+                        </div>
+                     </div>
+                     <div class="control-group">
+                        <label class="control-label">Confirm Password <i class='icon-question-sign' id='confirm_password_info' data-rel='tooltip' data-placement='top'></i></label>
+                        <div class="controls">
+                           <input type="password" name="confirmPassword" id="confirmPassword" class="input-large" placeholder="Confirm Password" readonly />
+                        </div>
+                     </div>
+                  </div>
+
+                  <div class="control-group">
+                     <div class="input controls" style="visibility:hidden">
+                        <input type="text" name="timezonechange" id="timezonechange" value="" />
+                     </div>
+                  </div>
+
+                  <div class="form-actions">
+                     <button type="button" id="gen-settings-submit" class="pull-left btn btn-primary multi-form-submit" type="submit"><i class="icon-ok"></i> Submit</button>
+                  </div>
+               </form>
+            </div>
+
+            <div id="lic-settings" class="tab-pane" style='margin-top:15px; display:none;'>
+               <form class="bds-form-1 form-horizontal" id="licenseActivation"  action='{% url "license_view" %}' enctype="multipart/form-data" method="POST">{% csrf_token %}
+                  <div class="control-group">
+                     <label class="control-label">BlueData License Key <i class='icon-question-sign' id='license_key_info' data-rel='tooltip' data-placement='top'></i></label>
+                     <div class="input controls">
+                        <input type="text" name="licenseKey" id="licenseKey" class="input-xlarge" value="{{license_key}}">
+                     </div>
+                  </div>    
+                  <div class="control-group">
+                     <label class="control-label">Your Email Address <i class='icon-question-sign' id='email_address_info' data-rel='tooltip' data-placement='top'></i></label>
+                     <div class="controls">
+                        <input type="text" name="email" id="email" class="input-xlarge" value="{{username}}">
+                     </div>
+                  </div>
+                  <div class='control-group'>
+                     <div class='controls'>
+                        <input type='checkbox' name='reActivation' id='reActivation' class='ace' />
+                        <span class='lbl'> Re-Activation of a previously registered license</span>
+                     </div>
+                  </div>
+                  <!-- Fields for no re-activation option -->
+                  <div class='no-re-activation'>
+                     <div class="control-group">
+                        <label class="control-label">Enter Password <i class='icon-question-sign' id='password_info' data-rel='tooltip' data-placement='top'></i></label>
+                        <div class="controls">
+                           <input type="password" name="password" id="password" class="input-xlarge" placeholder="Password" />
+                        </div>
+                     </div>
+                     <div class="control-group">
+                        <label class="control-label">Confirm Password <i class='icon-question-sign' id='confirm_password_info' data-rel='tooltip' data-placement='top'></i></label>
+                        <div class="controls">
+                           <input type="password" name="confirmPassword" id="confirmPassword" class="input-xlarge" placeholder="Password" />
+                        </div>
+                     </div>
+                  </div>
+                  <!-- Fields for re-activation option -->
+                  <div class='re-activation' style="display:none;">
+                     <div style='border:2px solid red; width:450px; padding:5px; margin-bottom:15px;'>Warning: This will disable your license on your original BlueData Cluster if that cluster is still in operation.</div>
+                     <div class="control-group">
+                        <label class="control-label">Old Password <i class='icon-question-sign' id='old_password_info' data-rel='tooltip' data-placement='top'></i></label>
+                        <div class="controls">
+                           <input type="password" name="oldPassword" id="oldPassword" class="input-xlarge" placeholder="Password" />
+                        </div>
+                     </div>
+                     <div class="control-group">
+                        <label class="control-label">Unique New Password <i class='icon-question-sign' id='new_password_info' data-rel='tooltip' data-placement='top'></i></label>
+                        <div class="controls">
+                           <input type="password" name="uniquePassword" id="uniquePassword" class="input-xlarge" placeholder="Password" />
+                        </div>
+                     </div>
+                  </div>
+                  <div class="form-actions">
+                     <button type="button" id="lic-settings-submit" class="pull-left btn btn-primary  multi-form-submit" type="submit"><i class="icon-ok"></i> Submit</button>
+                  </div>
+               </form>
+            </div>
+
+         </div>
+      </div>
+   </div>
+</div>   
+
+
+<div id="statusmodal" class="modal hide fade">
+   <div class="modal-header blue">
+      <h4 id="status-title"></h4>
+   </div>
+   <div class="modal-body no-padding" style="max-height:350px; overflow-y:auto;">
+      <div class="row-fluid">
+         <table id="status-table" class="table table-striped table-bordered table-hover no-margin-bottom no-border-top">
+            <thead>
+               <tr>
+                  <th>Host</th>
+                  <th>Timezone Status</th>
+                  <th>Password Status</th>
+               </tr>
+            </thead>
+            <tbody>
+            </tbody>
+         </table>
+      </div>
+   </div>
+
+   <div class="modal-footer">  
+      <button type="button" class="btn btn-primary" data-dismiss="modal" id="modal-footer-text">Hide</button>
+   </div>
+</div>
+{% endblock %}
+{% block page_script %}
+<script src="/bdswebui/static/bdswebui/js/ansi_html.js"  type="text/javascript"></script>
+
+<script type="text/javascript">
+   
+   $(document).ready(function () {
+       
+       // DCO RELATED DATA
+       // check to see if task is active, in which case we should the progress of this to the user
+       $('#dcopath').val('{{dco.path}}');
+       $('#tmpfspath').val('{{tmpfs.path}}');
+       
+       $('#dcotype').val('{{dco.type}}');
+       $('#tmpfstype').val('{{tmpfs.type}}');
+
+       setTypeChoice(false);
+       setTypeChoice(true);
+
+       $('#dcotype').change(function () {
+           setTypeChoice(false);
+       }).trigger('change');
+
+       $('#tmpfstype').change(function () {
+           setTypeChoice(true);
+       }).trigger('change');
+
+
+       $("#password-form :input").prop("readonly", true);
+
+       $("#dco-form :input").prop("readonly", true);
+       $("select#dcotype").attr("disabled", true);
+
+       $("#tmpfs-form :input").prop("readonly", true);
+       $("select#tmpfstype").attr("disabled", true);
+
+       $('#dcochange').change(function(){
+           if ($('#dcochange').is(':checked')) {
+               $("#dco-form :input").prop("readonly", false);
+               $("select#dcotype").attr("disabled", false);
+           }
+           else {
+               $("#dco-form :input").prop("readonly", true);
+               $("select#dcotype").attr("disabled", true);
+           }
+       });
+
+       $('#tmpfschange').change(function(){
+           if ($('#tmpfschange').is(':checked')) {
+               $("#tmpfs-form :input").prop("readonly", false);
+               $("select#tmpfstype").attr("disabled", false);
+           }
+           else {
+               $("#tmpfs-form :input").prop("readonly", true);
+               $("select#tmpfstype").attr("disabled", true);
+           }
+       });
+
+       function setTypeChoice(tmpfs) {
+           var prefix = '';
+           if (tmpfs) {
+               prefix = 'tmpfs';
+               val = $("#tmpfstype option:selected").val(); 
+           }
+           else {
+               prefix = 'dco';
+               val = $("#dcotype option:selected").val(); 
+           }
+           if (val == "file") {
+               $('.' + prefix + 'gluster-form').hide();
+               $('.' + prefix + 'hdfs-form').hide();
+               $('.' + prefix + 'nfs-form').hide();
+               $('.' + prefix + 'swift-form').hide();
+           }
+           else if (val == "gluster") {
+               $('.' + prefix + 'hdfs-form').hide();
+               $('.' + prefix + 'nfs-form').hide();
+               $('.' + prefix + 'swift-form').hide();
+               $('.' + prefix + 'gluster-form').show();
+           }
+           else if (val == "hdfs") {
+               $('.' + prefix + 'gluster-form').hide();
+               $('.' + prefix + 'nfs-form').hide();
+               $('.' + prefix + 'swift-form').hide();
+               $('.' + prefix + 'hdfs-form').show();
+           }
+           else if (val == "nfs") {
+               $('.' + prefix + 'gluster-form').hide();
+               $('.' + prefix + 'hdfs-form').hide();
+               $('.' + prefix + 'swift-form').hide();
+               $('.' + prefix + 'nfs-form').show();
+           }
+           else if (val == "swift") {
+               $('.' + prefix + 'gluster-form').hide();
+               $('.' + prefix + 'hdfs-form').hide();
+               $('.' + prefix + 'nfs-form').hide();
+               $('.' + prefix + 'swift-form').show();
+           }
+       }
+
+       $.validator.addMethod("validName", function(value, element) {
+           var id = $(element).attr('id');
+           if (id.indexOf('dco') == 0 ) {
+               if (!$('#dcochange').is(':checked')) {
+                   return true;
+               }
+           }
+           else {
+               if (!$('#tmpfschange').is(':checked')) {
+                   return true;
+               }
+           }
+
+           if (value == "bluedata-defaultfs") {
+               return false;
+           }
+           var regexp = /^[0-9A-Za-z\-_\.!~\*'\(\)\$,;:@&=\+]+$/
+           if (!value.match(regexp)) {
+               return false;
+           }
+           return true;
+       }, "Invalid Data Connector Name. Please specify a different one");
+
+       $.validator.addMethod("validGluster", function(value, element) {
+           // This could be from dco or tmpfs, check for that.
+           var prefix = '';
+           var id = $(element).attr('id');
+           if (id.indexOf('dco') == 0) {
+               if (!$('#dcochange').is(':checked')) {
+                   return true;
+               }
+               prefix = '#dco';
+           }
+           else {
+               if (!$('#tmpfschange').is(':checked')) {
+                   return true;
+               }
+               prefix = '#tmpfs';
+           }
+                   
+           if ($(prefix +'type').val() == 'gluster') {
+               if (($(prefix+'host').val() == '') ||
+                     ($(prefix+'volume').val() == '')) {
+                   return false;
+               }
+           }
+           return true;
+       });
+
+       $.validator.addMethod("validHDFS", function(value, element) {
+           var prefix = '';
+           var id = $(element).attr('id');
+           if (id.indexOf('dco') == 0) {
+               if (!$('#dcochange').is(':checked')) {
+                   return true;
+               }
+               prefix = '#dco';
+           }
+           else {
+               if (!$('#tmpfschange').is(':checked')) {
+                   return true;
+               }
+               prefix = '#tmpfs';
+           }
+                   
+           if ($(prefix+'#type').val() == 'hdfs') {
+               if ($(prefix+'#host').val() == '') {
+                   return false;
+               }
+           }
+           return true;
+       });
+
+       $.validator.addMethod("validNFS", function(value, element) {
+           var prefix = '';
+           var id = $(element).attr('id');
+           if (id.indexOf('dco') == 0) {
+               if (!$('#dcochange').is(':checked')) {
+                   return true;
+               }
+               prefix = '#dco';
+           }
+           else {
+               if (!$('#tmpfschange').is(':checked')) {
+                   return true;
+               }
+               prefix = '#tmpfs';
+           }
+                   
+           if ($(prefix+'type').val() == 'nfs') {
+               if (($(prefix+'host').val() == '') ||
+                     ($(prefix+'share').val() == '')) {
+                   return false;
+               }
+           }
+           return true;
+       });
+
+       $.validator.addMethod("validSwift", function(value, element) {
+           var prefix = '';
+           var id = $(element).attr('id');
+           if (id.indexOf('dco') == 0) {
+               if (!$('#dcochange').is(':checked')) {
+                   return true;
+               }
+               prefix = '#dco';
+           }
+           else {
+               if (!$('#tmpfschange').is(':checked')) {
+                   return true;
+               }
+               prefix = '#tmpfs';
+           }
+                   
+           if ($(prefix+'#type').val() == 'swift') {
+               if (($(prefix+'host').val() == '') ||
+                     ($(prefix+'container').val() == '') ||
+                     ($(prefix+'account').val() == '')) {
+                   return false;
+               }
+           }
+           return true;
+       });
+
+       $('.dcoport').change(function(){
+           // Setting hidden field for post processing
+           $('#dcoport').val($(this).val());
+       });
+
+       $('.tmpfsport').change(function(){
+           // Setting hidden field for post processing
+           $('#tmpfsport').val($(this).val());
+       });
+
+       $('#dcosettings').validate({
+           errorElement: 'span',
+           errorClass: 'help-inline',
+           focusInvalid: false,
+           rules: {
+               dconame: {
+                   minlength: 1,
+                   maxlength: 32,
+                   validName: true
+               },
+               dcohost: {
+                   required: {
+                       depends: function() {
+                           if ($('#dcochange').is(':checked')) {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   },
+               },
+               dcovolume: {
+                   validGluster: true,
+               },
+               dcoshare: {
+                   validNFS: true,
+               },
+               dcoaccount: {
+                   validSwift: true,
+               },
+               dcocontainer: {
+                   required: {
+                       depends: function() {
+                           if ($('#dcochange').is(':checked')) {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   },
+                   validSwift: true,
+               },
+               tmpfsname: {
+                   minlength: 1,
+                   maxlength: 32,
+                   validName: true
+               },
+               tmpfshost: {
+                   required: {
+                       depends: function() {
+                           if ($('#tmpfschange').is(':checked')) {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   },
+               },
+               tmpfsvolume: {
+                   validGluster: true,
+               },
+               tmpfsshare: {
+                   validNFS: true,
+               },
+               tmpfsaccount: {
+                   validSwift: true,
+               },
+               tmpfscontainer: {
+                   validSwift: true,
+               }
+    
+           },
+           messages: {
+               dconame: {
+                   required: "Please provide a valid data connector name.",
+                   minlength: $.format("Data Connector name must be atleast {0} characters"),
+                   maxlength: $.format("Data Connector  name must not exceed {0} characters")
+               },
+               dcohost: "Please provide a valid host.",
+
+               dcovolume: "Please provide a valid volume.",
+
+               dcoshare: "Please provide a valid share",
+
+               dcoaccount: "Please provide a valid account.",
+               dcocontainer: "Please provide a valid container.",
+
+               tmpfsname: {
+                   required: "Please provide a valid data connector name.",
+                   minlength: $.format("Data Connector name must be atleast {0} characters"),
+                   maxlength: $.format("Data Connector  name must not exceed {0} characters")
+               },
+               tmpfshost: "Please provide a valid host.",
+
+               tmpfsvolume: "Please provide a valid volume.",
+
+               tmpfsshare: "Please provide a valid share",
+
+               tmpfsaccount: "Please provide a valid account.",
+               tmpfscontainer: "Please provide a valid container.",
+           },
+
+           highlight: function (e) {
+               $(e).closest('.control-group').removeClass('info').addClass('error');
+           },
+
+           success: function (e) {
+               $(e).closest('.control-group').removeClass('error').addClass('info');
+               $(e).remove();
+           },
+           
+             
+           errorPlacement: function (error, element) {
+               if(element.is(':checkbox') || element.is(':radio')) {
+                   var controls = element.closest('.controls');
+                   if(controls.find(':checkbox,:radio').length > 1) controls.append(error);
+                   else error.insertAfter(element.nextAll('.lbl').eq(0));
+               }
+               else error.insertAfter(element);
+           },
+
+           submitHandler: function (form) {
+               if ($('#dcochange').is(':checked') ||
+                     $('#tmpfschange').is(':checked')) {
+                   bdsFormSubmit(form, "Failed to update system storage settings",
+                                 '{% url "gensettings_view" %}');
+               }
+               else {
+                   bootbox.alert("Nothing to update", function(result) {
+                       return;
+                   });
+               }
+           }
+       });
+   });      
+</script>
+
+<script type="text/javascript">
+
+   $(document).ready(function () {
+       
+       // TIMEZONE/PASSWORD/DCO RELATED CHANGES
+       var config_data = {{config_data|safe}};
+
+       var previous_config_error = false;
+
+       // Go through the list to find out if there was anything that resulted in an error before.
+       
+       var hosts = config_data.configsettings_status;
+       for (var i = 0; i < hosts.length; i++) {
+
+           if (hosts[i][1].Timezone == "error" ||
+                 hosts[i][1].Password == "error") {
+               previous_config_error = true;
+               break;
+           }
+           if (previous_config_error) {
+               break;
+           }
+       }
+
+       function reloadTimezones() {
+           document.getElementById("timezone").options.length = 0;
+           var options = '';
+
+           var timezones = {{timezones|safe}};
+           for (var i = 0; i < timezones.length; i++) {
+               options += '<option value="' + timezones[i] + '" text="' + timezones[i] + '" ';
+               options += '>'+timezones[i]+'</option>';
+           }
+           options += '<optgroup class="existing" label="Select Timezone">'+options+'</optgroup>';
+
+           $('#timezone').append(options);
+           $('#timezone').val(config_data.timezone).trigger('chosen:updated');
+       }
+
+       reloadTimezones();
+       $(".chzn-select").chosen({enable_split_word_search:true,search_contains:true,
+                                placeholder_text_multiple: "Select Timezone",
+                                display_disabled_options:true,
+                                display_selected_options:true});
+
+       $('#timezone').change(function() {
+           if (config_data.timezone == $('#timezone').val()) {
+               $('#timezonechange').val('');
+           }
+           else {
+               $('#timezonechange').val($('#timezone').val());
+           }
+       });
+
+       $('#passwordchange').change(function(){
+           if ($('#passwordchange').is(':checked')) {
+               $('#password').prop("readonly", false);
+               $('#confirmPassword').prop("readonly", false);
+           }
+           else {
+               $('#password').prop("readonly", true);
+               $('#confirmPassword').prop("readonly", true);
+           }
+       });
+
+       $('.modal').on('hide',function() {
+           if($('.modal-backdrop').length > 1 ) {
+               $('.modal-backdrop')[0].remove();
+           }
+       });
+
+       var first_time = true;
+
+       function populateStatus(config_data) {
+           bdStopSpin();
+           var i;
+
+           // Title
+           var title = 'Updating ';
+           var tasks = config_data.configsettings_tasks;
+           for (i = 0; i < tasks.length; i++) {
+               title += tasks[i][0];
+               if (i+1 < tasks.length) {
+                   title += ', '
+               }
+           }
+           // First clear the entires from the table.
+           $("#status-table tbody tr").remove();
+
+           // Actual table containing data
+           var error = false;
+           var hosts = config_data.configsettings_status;
+           for (var i = 0; i < hosts.length; i++) {
+               var content = '<tr>';
+               content += '<td>' + hosts[i][0] + '</td>';
+
+               // Check to see if anything failed.
+               var status = hosts[i][1];
+
+               if (status.Timezone == undefined) {
+                   content += '<td></td>';
+               }
+               else {
+                   if (status['Timezone'] == "pending") {
+                       content += '<td><div class="progress progress-warning progress-striped active"><div class="bar" style="width: 100%"></div></div></td>';
+                   }
+                   else if (status['Timezone'] == "running") {
+                       content += '<td><div class="progress progress-info progress-striped active"><div class="bar" style="width: 100%"></div></div></td>';
+                   }
+                   else if (status['Timezone'] == "completed") {
+                       content += '<td><div class="progress progress-success progress-striped"><div class="bar" style="width: 100%"></div></div></td>';
+                   }
+                   else {
+                       error = true;
+                       content += '<td><div class="progress progress-danger data-percent="Error"><div class="bar" style="width: 100%"></div></div></td>';
+                   }
+               }
+
+               if (status.Password == undefined) {
+                   content += '<td></td>';
+               }
+               else {
+                   if (status['Password'] == "pending") {
+                       content += '<td><div class="progress progress-warning progress-striped active"><div class="bar" style="width: 100%"></div></div></td>';
+                   }
+                   else if (status['Password'] == "running") {
+                       content += '<td><div class="progress progress-info progress-striped active"><div class="bar" style="width: 100%"></div></div></td>';
+                   }
+                   else if (status['Password'] == "completed") {
+                       content += '<td><div class="progress progress-success progress-striped"><div class="bar" style="width: 100%"></div></div></td>';
+                   }
+                   else {
+                       error = true;
+                       content += '<td><div class="progress progress-danger data-percent="Error"><div class="bar" style="width: 100%"></div></div></td>';
+                   }
+               }
+    
+               content += '</tr>';
+
+               $("#status-table tbody").append(content);
+           }
+           
+           if (config_data.configsettings_task_active == false) {
+               // Completed. Based on error update the titie
+               if (error) {
+                   $('#status-title').text("System settings failed to update for one or more nodes");
+                   previous_config_error = true;
+               }
+               else {
+                   $('#status-title').text("System settings updated");
+                   previous_config_error = false;
+               }
+           }
+           else {
+               // Still running..
+               $('#status-title').text(title);
+           }
+           $('#timezone').val(config_data.timezone).trigger('chosen:updated');
+       }
+
+       if (config_data.configsettings_task_active == true || previous_config_error) {
+           $('#gensettings :input').prop("readonly", false);
+           populateStatus(config_data);
+
+           $('#statusmodal').modal('show');
+
+           if (config_data.configsettings_task_active == true) {
+               // Redirect directly to adminmanage page popup.
+               bdStartAjaxTimer(1, 'timer', timerCallback);
+           }
+       }
+
+       $('#gensettings').validate({
+           errorElement: 'span',
+           errorClass: 'help-inline',
+           focusInvalid: false,
+           rules: {
+               password: {
+                   required: {
+                       depends: function() {
+                           if ($('#passwordchange').is(':checked')) {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   },
+               },
+               confirmPassword: {
+                   required: {
+                       depends: function() {
+                           if ($('#passwordchange').is(':checked')) {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   },
+                   equalTo: '#password',
+               },
+           },
+           messages: {
+               oldPassword: 'Please provide the current password',
+
+               password: 'Please provide a new password',
+               confirmPassword: {
+                   required: "Please provide a new password.",
+                   equalTo: "Passwords do not match",
+               },
+           },
+           highlight: function (e) {
+               $(e).closest('.control-group').removeClass('info').addClass('error');
+           },
+
+           success: function (e) {
+               $(e).closest('.control-group').removeClass('error').addClass('info');
+               $(e).remove();
+           },
+             
+           errorPlacement: function (error, element) {
+               if(element.is(':checkbox') || element.is(':radio')) {
+                   var controls = element.closest('.controls');
+                   if(controls.find(':checkbox,:radio').length > 1) controls.append(error);
+                   else error.insertAfter(element.nextAll('.lbl').eq(0));
+               }
+               else error.insertAfter(element);
+           },
+
+           submitHandler: function (form) {
+               if (previous_config_error ||
+                     config_data.timezone != $('#timezone').val() ||
+                     $('#passwordchange').is(':checked')) {
+                   $('#timezonechange').val($('#timezone').val());
+                   installFormSubmit(form);
+               }
+               else {
+                   bootbox.alert("Nothing to update", function(result) {
+                       return;
+                   });
+               }
+           },
+       });
+
+       function installFormSubmit(form) {
+           bdStartSpin();
+           first_time = true;
+           var formdata = new FormData(form);
+           $.ajax({
+               url: $('#gensettings').attr('action'),
+               type: 'post',
+               data: formdata,
+               mimeType:"multipart/form-data",
+               contentType: false,
+               processData: false,
+               cache: false,
+               csrfmiddlewaretoken: csrftoken,
+               headers: {'X-CSRFToken' : csrftoken},
+               success:
+                  function(result) {
+                      result = JSON.parse(result);
+                      if (result.status_code >= 200 && result.status_code < 207) {
+                          $('#gensettings :input').prop("readonly", true);
+                          bdStartAjaxTimer(1, 'timer', timerCallback);
+                      }
+                      else {
+                          bdStopSpin();
+                          var error_msg = getErrorMessage(result.status_code, result.reason);
+                          bootbox.alert(error_msg, function(res) {
+                              if (result.status_code == 408) {
+                                  window.location.href = result.redirect;
+                              }
+                              return;
+                          });
+                      }
+                  },
+               error:
+                  function(response) {
+                      bdStopSpin();
+                      bootbox.alert("Failed to update settings", function(result) {
+                          return;
+                      });
+                  }
+           })
+       }
+
+       function timerCallback() {
+           $.ajax({
+               url: '{% url "get_config" %}',
+               method: 'post',
+               csrfmiddlewaretoken: csrftoken,
+               headers: {'X-CSRFToken' : csrftoken},
+               success: function(result) {
+                   if (result.status_code == 408) {
+                       window.location.href = result.redirect;
+                       return;
+                   }
+                   else {
+                       // Based on the data populate
+                       config_data = result;
+                       populateStatus(result);
+                       if (first_time) {
+                           bdStopSpin();
+                           $('#statusmodal').modal('show');
+                           first_time = false;
+                       }
+                       if (result.configsettings_task_active == false) {
+                           // Change modal data that we are done... but leave the modal open, so
+                           // user can look at the statuses of individual nodes, in case some of them failed.
+                           $('#modal-footer-text').html("Close");
+                       }
+                       else {
+                           bdStartAjaxTimer(10, 'timer', timerCallback);
+                       }
+                   }
+               },
+               error: function(result) {
+                   bdStartAjaxTimer(10, 'timer', timerCallback);
+               }
+           });
+       }
+   });
+</script>
+      
+<script type="text/javascript">
+   $(document).ready(function () {
+       
+       // Handle key enter and mouse clicks on submit button for this page.
+       // We have multiple forms on this page, so we can't use the common functiom
+       // in bluedata.js
+       function handleClick(form) {
+           if (!$(form).is(':disabled')) {
+               if ($(form).valid()) {
+                   $(form).submit();
+               }
+           }
+       }
+
+       $('.multi-form-submit').on('click', function(e){
+           e.preventDefault();
+           var form = $(this).parents('form:first');
+           handleClick(form);
+           return false;
+       });
+       
+       $('.bds-form-1').on('keypress', function(e) {
+           var form = $(e.target).parents('form:first');
+           if (e.keyCode == 13 && e.target.type != "textarea") {
+               e.preventDefault();
+
+               handleClick(form);
+           }
+       });
+   });
+
+   $(document).ready(function () {
+       
+       // Based on config_data populate fields with the current data.
+
+       $('#authconfig').data('serialize',$('#authconfig').serialize());
+       var orig_external_auth = '{{external_auth_type|safe}}';
+       $('#auth_type').val(orig_external_auth);
+       setAuthChoice();
+       
+       function setAuthChoice() {
+           v = $("#auth_type option:selected").val(); 
+           switch (v) {
+               case 'LDAP':
+                   $('.ldap-form').show();
+                   $('.kerb-form').hide();
+                   $('.ad-form').hide();
+                   break;
+
+               case 'Kerberos':
+                   $('.ldap-form').hide();
+                   $('.kerb-form').show();
+                   $('.ad-form').hide();
+                   break;
+
+               case 'Active Directory':
+                   $('.ldap-form').hide();
+                   $('.kerb-form').hide();
+                   $('.ad-form').show();
+                   break;
+
+               case 'undefined':
+                   $('.ldap-form').hide();
+                   $('.kerb-form').hide();
+                   $('.ad-form').hide();
+                   break;
+           }
+       }
+
+       $('#auth_type').change(function () {
+           setAuthChoice(false);
+       }).trigger('change');
+
+       $('#authconfig').validate({
+           onfocusout: false,
+           onkeyup: false,
+           onclick: false,
+
+           errorElement: 'span',
+           errorClass: 'help-inline',
+           focusInvalid: false,
+           rules: {
+               ldap_host: {
+                   required: {
+                       depends: function() {
+                           if ($('#auth_type').val() == 'LDAP') {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+               ldap_port: {
+                   required: false,
+                   number: true
+               },
+               ldap_user_attr: {
+                   required: {
+                       depends: function() {
+                           if ($('#auth_type').val() == 'LDAP') {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+               ldap_user_subtree: {
+                   required: {
+                       depends: function() {
+                           if ($('#auth_type').val() == 'LDAP') {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+
+               kerb_host: {
+                   required: {
+                       depends: function() {
+                           if ($('#auth_type').val() == 'Kerberos') {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+               kerb_instance: {
+                   required: {
+                       depends: function() {
+                           if ($('#auth_type').val() == 'Kerberos') {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+               kerb_realm: {
+                   required: {
+                       depends: function() {
+                           if ($('#auth_type').val() == 'Kerberos') {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+
+               ad_host: {
+                   required: {
+                       depends: function() {
+                           if ($('#auth_type').val() == 'Active Directory') {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+               ad_port: {
+                   required: false,
+                   number: true
+               },
+
+               ad_user_attr: {
+                   required: {
+                       depends: function() {
+                           if ($('#auth_type').val() == 'Active Directory') {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+               ad_user_subtree: {
+                   required: {
+                       depends: function() {
+                           if ($('#auth_type').val() == 'Active Directory') {
+                               return true;
+                           }
+                           else {
+                               return false;
+                           }
+                       }
+                   }
+               },
+           },
+
+           messages: {
+               ldap_host: "Provide a valid hostname/ipaddress for LDAP Server",
+               ldap_port: "Provide a valid portnum for LDAP Server",
+               ldap_user_attr: "Provide the user attribute used for login (cn/uid)",
+               ldap_user_subtree: "Provide a valid sub tree for DN for searching",
+
+               kerb_host: "Provide a valid hostname/ipaddress for Kerberos Server",
+               kerb_realm: "Provide the kerberos realm to be used for authentication",
+               kerb_instance: "Provide the kerberos instance to be used for authentication",
+
+               ad_host: "Provide a valid hostname/ipaddress for Active Directory Server",
+               ad_port: "Provide a valid portnum for Active Directory Server",
+               ad_user_attr: "Provide the user attribute used for login (cn/uid)",
+               ad_user_subtree: "Provide a valid sub tree for DN for searching",
+           },
+
+           highlight: function (e) {
+               $(e).closest('.control-group').removeClass('info').addClass('error');
+           },
+
+           success: function (e) {
+               $(e).closest('.control-group').removeClass('error').addClass('info');
+               $(e).remove();
+           },
+             
+           errorPlacement: function (error, element) {
+               bdStopSpin();
+               if(element.is(':checkbox') || element.is(':radio')) {
+                   var controls = element.closest('.controls');
+                   if(controls.find(':checkbox,:radio').length > 1) controls.append(error);
+                   else error.insertAfter(element.nextAll('.lbl').eq(0));
+               } 
+               else error.insertAfter(element);
+           },
+           submitHandler: function (form) {
+               if ($('#auth-settings').serialize() == $('#auth-settings').data('serialize')) {
+                   bootbox.alert("Nothing to update", function(result) {
+                       return;
+                   });
+               }
+               else {
+                   bdsFormSubmit(form, "Failed to setup authentication",
+                                 '{% url "gensettings_view" %}');
+               }
+           },
+       });
+   });
+</script>
+
+<script type="text/javascript">
+   $(document).ready(function () {
+       // LICENSE RELATED INFO
+       //handle when re-activate existing license option is clicked
+       $('#reActivation').click(function(){
+           // Reset the password fields..
+           $('#password').val('');
+           $('#confirmPassword').val('');
+           $('#oldPassword').val('');
+           $('#uniquePassword').val('');
+
+           //when re-activate checkbox is set to true
+           if($(this).is(':checked')) {
+               $('.no-re-activation').hide();
+               $('.re-activation').show();
+           }
+           else { //when re-activate checkbox is set to false
+               $('.re-activation').hide();
+               $('.no-re-activation').show();
+           }
+             
+           $('.control-group.error').removeClass('error');
+       });
+       //set the default behavior
+       $('.re-activation').hide();
+       $('.no-re-activation').show();
+
+       $.validator.addMethod("validReactivate", function(value, element) {
+           if ($('#uniquePassword').val() == $('#oldPassword').val()) {
+               return false;
+           }
+           return true;
+       }, "Old Password and Unique New Passwords cannot be seen");
+
+       
+       var validator = $('#licenseActivation').validate({
+           errorElement: 'span',
+           errorClass: 'help-inline',
+           focusInvalid: false,
+           rules: {
+               licenseKey: {
+                   required: true,
+                   minlength: 24,
+                   maxlength: 24,
+               },
+               email: {
+                   required: true,
+                   email: true
+               },
+               confirmemail: {
+                   equalTo: '#email'
+               },
+               password: {
+                   required: true,
+               },
+               confirmPassword: {
+                   equalTo: '#password',
+                   required: true,
+               },
+               oldPassword: {
+                   required: true,
+                   validReactivate: true,
+               },
+               uniquePassword: {
+                   required: true,
+                   validReactivate: true,
+               }
+           },
+           messages: {
+               licenseKey: 'Please select a valid license (Must be 24 characters)',
+               email: {
+                   required: "Please provide a valid email.",
+                   email: "Please provide a valid email."
+               },
+               confirmemail: {
+                   required: "Please provide a valid password.",
+                   equalTo: "Email Addresses do not match",
+               },
+               password: 'Please provide a valid password',
+               confirmPassword: {
+                   required: "Please provide a valid password.",
+                   equalTo: "Passwords do not match",
+               },
+               oldPassword: 'Please provide a valid password',
+               uniquePassword: 'Please provide a unique new password'
+           },
+
+           highlight: function (e) {
+               $(e).closest('.control-group').removeClass('info').addClass('error');
+           },
+
+           success: function (e) {
+               $(e).closest('.control-group').removeClass('error').addClass('info');
+               $(e).remove();
+           },
+             
+           errorPlacement: function (error, element) {
+               bdStopSpin();
+               if(element.is(':checkbox') || element.is(':radio')) {
+                   var controls = element.closest('.controls');
+                   if(controls.find(':checkbox,:radio').length > 1) controls.append(error);
+                   else error.insertAfter(element.nextAll('.lbl').eq(0));
+               }
+               else error.insertAfter(element);
+           },
+
+           submitHandler: function (form) {
+              bdsFormSubmit(form, "Failed to validate license key",
+                            '{% url "gensettings_view" %}');
+           },
+       });
+
+   });
+</script>
+
+<script type="text/javascript">
+
+   $(document).ready(function () {
+       var workers = {{workers|safe}};
+       var installed_workers = 0;
+       var isPopoverActive = false;
+       var controller_worker;
+       var controller_ip = '{{controller_ip}}';
+       var config_data = {{config_data|safe}};
+       var install_config = {{install_config|safe}};
+       var locks_data = {{locks_data|safe}};
+       var disable_ha_option = false;
+
+       if (install_config.install_state == "ha_setup") {
+           $('#enable-ha-form').hide();
+           $('#ha-progress').show();
+           bdStartAjaxTimer(1, 'timer', haProgressTimer);
+       }
+       else {
+           $('#enable-ha-form').show();
+           $('#ha-progress').hide();
+       }
+
+       for (var i = 0; i < workers.length; i++) {
+           if (controller_ip == workers[i].ip) {
+               controller_worker = i;
+           }
+           else {
+               if (workers[i].state == "installed") {
+                   installed_workers++;
+               }
+           }
+       }
+       // Remove the controller worker from the list 
+       workers.splice(controller_worker, 1);
+
+       if (install_config.install_state == "ha_setup" || config_data['bds_ha_enabled'] == "Yes" ||
+             installed_workers < 2 || !locks_data.locked || !locks_data.quiesced) {
+           disable_ha_option = true;
+       }
+
+       function haProgressTimer() {
+           $.ajax({
+               url: '{% url "get_config" %}',
+               method: 'post',
+               csrfmiddlewaretoken: csrftoken,
+               headers: {'X-CSRFToken' : csrftoken},
+               success: function(result) {
+                   var str = result.log_output.replace(/\n/g, "<br />");
+                   var html = ansi_up.ansi_to_html(str);
+                   $('#log_data').html(html);
+                   $('#log_data_bottom').get(0).scrollIntoView();
+                   if (result.install_state == "ha_setup") {
+                       // Update log_data 
+                       bdStartAjaxTimer(10, 'timer', haProgressTimer);
+                   }
+               },
+               error: function(result) {
+                   bdStartAjaxTimer(10, 'timer', haProgressTimer);
+               }
+           });
+       }
+
+       // We want to show a popover when there are no workers
+       $(document).on('mouseenter','#enable-ha', function(){
+           if (disable_ha_option) {
+               setTimeout(function(){
+                   $('#enable-ha').popover({
+                       trigger: 'manual',
+                       html: true,
+                       title: '',
+                       placement: 'bottom',
+                       content:
+                           function() {
+                               var msg = "";
+                               if (install_config.install_state == "ha_setup") {
+                                   msg += 'HA setup in progress.';
+                               }
+                               else if (installed_workers < 2) {
+                                   msg += 'At least 2 workers have to be added to the cluster to enable HA. </br> Click ';
+                                   msg += '<a href=' + '"{% url "manageworker_view" %}"' + '>Add Workers</a> to add workers.';
+                               }
+                               else if (config_data['bds_ha_enabled'] == "Yes") {
+                                   msg += 'HA cannot be disabled after it has been setup';
+                               }
+                               else {
+                                   msg += 'Site has to be in lockdown mode prior to running HA Setup.  </br> Click ';
+                                   msg += '<a class="bds-modal-form" href="{% url "lockdown_view" %}" id="enter-lockdown">Enter site lockdown</a>';
+                               }
+                               return msg;
+                           }
+                   });
+
+                   $('#enable-ha').popover("show");
+                   // Now bind to the events..
+                   $('.popover').on('mouseenter', function() {
+                       isPopoverActive = true;
+                   });
+
+                   $('.popover').on('mouseleave', function() {
+                       isPopoverActive = false;
+                       $('#enable-ha').popover('hide');
+                   });
+               }, 200);
+           }
+      });
+
+      $(document).on('mouseleave','#enable-ha', function(){
+          if ($('#enableha_id').prop('disabled')) {
+              setTimeout(function(){
+                  if (!isPopoverActive) $('#enable-ha').popover("hide");
+              }, 200);
+          }
+      });
+
+      if (config_data['bds_ha_enabled'] == "Yes") {
+          // HA is setup or in progress, show rest of the information here..
+          $('#clusterip').text(config_data.bds_ha_clusterip);
+          for (var i = 0; i < workers.length; i++) {
+              if (workers[i].purpose == "sc") {
+                  $('#shadow_controller').text(workers[i].ip + "    (" + workers[i].hostname+")");
+              }
+              if (workers[i].purpose == "an") {
+                  $('#arbiter_node').text(workers[i].ip + "    (" + workers[i].hostname+")");
+              }
+          }
+          $('#ha-block').show();
+          $('#enableha_id').prop("checked", true);
+      }
+
+      if (disable_ha_option) {
+          // Also disable the submit button on the ha form
+          $('#enableha_id').prop("disabled", true);
+          $('#ha-settings #ha-settings-submit').prop("disabled", true);
+      }
+      else {
+          $('#enableha_id').prop("disabled", false);
+      }
+
+      $('#enableha_id').change(function(){
+          if ($('#enableha_id').is(':checked')) {
+              $('#ha-block').show();
+
+              initialize_SC_AN(workers[0].id, workers[1].id);
+          }
+          else {
+              $('#ha-block').hide();
+          }
+      });
+
+
+      function initialize_SC_AN(selected_sc, selected_an) {
+          var sc_options = '';
+          var an_options = '';
+
+          $('#shadow_controller').empty();
+          $('#arbiter_node').empty();
+
+          for (var i = 0; i < workers.length; i++) {
+              if (workers[i].state == "installed") {
+                  sc_options += '<option name="shadow_controller" value="' + workers[i].id + '" ';
+                  an_options += '<option name="arbiter_node" value="' + workers[i].id + '" ';
+
+                  if (selected_sc == workers[i].id) {
+                      an_options += ' disabled ';
+                  }
+
+                  if (selected_sc == workers[i].id) {
+                      sc_options += ' selected ';
+                  }
+
+                  if (selected_an == workers[i].id) {
+                      an_options += ' selected ';
+                  }
+
+                  sc_options += '>'+workers[i].ip+"    ("+workers[i].hostname+")"+'</option>';
+                  an_options += '>'+workers[i].ip+"    ("+workers[i].hostname+")"+'</option>';
+              }
+          }
+          $('#shadow_controller').append(sc_options);
+          $('#arbiter_node').append(an_options);
+      }
+
+      $('#shadow_controller').change(function () {
+          var sc = $("#shadow_controller option:selected").val();
+          var an = $("#arbiter_node option:selected").val();
+
+          if (sc == an) {
+              // We have to change the arbiter node dropdown here, since they are the same..
+              $("#arbiter_node option:disabled").removeAttr('disabled');
+              $("#arbiter_node option:selected").attr('disabled', 'disabled');
+              $("#arbiter_node option:selected").removeAttr('selected');
+          }
+      });
+
+      $('#hasettings').validate({
+          errorElement: 'span',
+          errorClass: 'help-inline',
+          focusInvalid: false,
+          rules: {
+              clusterip : 'required',
+              shadow_controller : 'required',
+              arbiter_node : 'required',
+          },
+          messages: {
+              clusterip : 'Enter the cluster ip to be used for HA Setup'
+          },
+
+          highlight: function (e) {
+              $(e).closest('.control-group').removeClass('info').addClass('error');
+          },
+
+          success: function (e) {
+              $(e).closest('.control-group').removeClass('error').addClass('info');
+              $(e).remove();
+          },
+
+          errorPlacement: function (error, element) {
+              if(element.is(':checkbox') || element.is(':radio')) {
+                  var controls = element.closest('.controls');
+                  if(controls.find(':checkbox,:radio').length > 1) controls.append(error);
+                  else error.insertAfter(element.nextAll('.lbl').eq(0));
+              }
+              else error.insertAfter(element);
+          },
+
+          submitHandler: function (form) {
+              if ($('#enableha_id').is(':checked')) {
+                  bdsFormSubmit(form, "Failed to update ha settings",
+                                '{% url "gensettings_view" %}');
+              }
+              else {
+                  bootbox.alert("Nothing to update", function(result) {
+                      return;
+                  });
+              }
+          },
+      });
+   });
+</script>   
+{% endblock %}

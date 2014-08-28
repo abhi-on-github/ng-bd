@@ -9,38 +9,21 @@
  */
 angular.module('bluedataApp')
   .controller('DashboardCtrl', function ($scope) {
-    $scope.jobs_data = [{
-            uuid: 2,
-            job_name: 'something',
-            status: "created"
-        },
-        {
-            uuid : 3,
-            job_name: 'something',
-            status: "starting"
-        },
-        {
-            uuid: 4,
-            job_name: 'something',
-            status: "running"
-        },
-        {
-            uuid : 5,
-            job_name: 'something',
-            status: "complete"
-        },
-        {
-            uuid : 6,
-            job_name: 'something',
-            status: "delete_in_progress"
-        },
-        {
-            uuid : 6,
-            job_name: 'something',
-            status: "error"
-        }
-];
+    $scope.jobs_data = [{uuid: 2,job_name: 'something',status: "created"},
+        {uuid : 3,job_name: 'something',status: "starting"},
+        {uuid: 4,job_name: 'something',status: "running"},
+        {uuid : 5,job_name: 'something',status: "complete"},
+        {uuid : 6,job_name: 'something',status: "delete_in_progress"},
+        {uuid : 6,job_name: 'something',status: "error"}];
 
+    $scope.cluster_data = [{uuid: 2,cluster_name: 'something',status: "created"},
+        {uuid : 3,cluster_name: 'something',status: "starting"},
+        {uuid: 4,cluster_name: 'something',status: "ready"},
+        {uuid : 5,cluster_name: 'something',status: "updating"},
+        {uuid : 6,cluster_name: 'something',status: "delete_in_progress"},
+        {uuid : 6,cluster_name: 'something',status: "error"}];
+
+        $scope.data_connectors = [{name: "DCO 1", description: "Its DCO 1"},{name: "DCO 2", description: "Its DCO 2"},{name: "DCO 3", description: "Its DCO 3"}];
 
 
 //       var setup_times = {{setup_times|safe}};

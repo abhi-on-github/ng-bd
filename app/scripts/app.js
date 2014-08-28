@@ -14,11 +14,15 @@ bluedataApp.config(function($routeProvider) {
 
     $routeProvider.
         when('/', {
-            controller: 'dashboard',
+            controller: 'MainCtrl',
+            templateUrl: 'views/main.html'
+        }).
+        when('/dashboard', {
+            controller: 'DashboardCtrl',
             templateUrl: 'views/dashboard.html'
         }).
         when('/menu/:restaurantId', {
-            controller: 'MenuController',
+            controller: 'DashboardCtrl',
             templateUrl: 'views/menu.html'
         });
 });

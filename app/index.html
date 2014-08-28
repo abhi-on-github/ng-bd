@@ -1,5 +1,5 @@
 <!doctype html>
-<html class="no-js" ng-app="bluedataApp">
+<html ng-app="bluedataApp">
   <head>
     <meta charset="utf-8">
     <title></title>
@@ -30,13 +30,13 @@
         <h3 class="text-muted">bluedata</h3>
       </div>
 
-      <div ng-include="'views/main.html'" ng-controller="MainCtrl"></div>
+      <!--<div ng-include="'views/main.html'" ng-controller="MainCtrl"></div>-->
+      <ng-view></ng-view>
 
       <div class="footer">
         <p><span class="glyphicon glyphicon-heart"></span> from the Yeoman team</p>
       </div>
     </div>
-
 
     <!-- Google Analytics: change UA-XXXXX-X to be your site's ID -->
      <script>

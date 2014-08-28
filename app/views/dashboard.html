@@ -1,6 +1,4 @@
-{% extends 'base.html' %}
-{% load url from future %}
-{% block main_content %}
+<ng-include></ng-include>
 <div class="row-fluid" id='dashboardPage_member'>
    <div class="row-fluid">
 
@@ -48,27 +46,18 @@
                            </thead>
 
                            <tbody>
-                              {% for row in jobs_data %}
-                              <tr>
-                                 <td style="display:none">{{ row.uuid }}</td>
+                              <tr ng-repeat="row in job_data">
+                                 <td style="display:none">{{row.uuid}}</td>
                                  <td>{{ row.job_name }}</td>
-                                 <td>
-                                    {% if row.status == 'created' %}
-                                    <span class="center label label-info" style="width:60px">created</span>
-                                    {% elif row.status == 'starting' %}
-                                    <span class="center label label-info" style="width:60px">starting</span>
-                                    {% elif row.status == 'complete' %}
-                                    <span class="center label label-success" style="width:60px">complete</span>
-                                    {% elif row.status == 'running' %}
-                                    <span style="width:60px;" class="center label label-info" data-rel="popover" data-placement="bottom" data-content='Job Duration {{ row.duration }} seconds'>running</span>
-                                    {% elif row.status == 'delete_in_progress' %}
-                                    <span class="center label label-success" style="width:60px">deleting</span>
-                                    {% else %}
-                                    <span class="center label label-important" style="width:60px">error</span> 
-                                    {% endif %}
+                                 <td ng-switch="row.status">
+                                    <span ng-switch-when="created" class="center label label-info" style="width:60px">created</span>
+                                    <span ng-switch-when="starting" class="center label label-info" style="width:60px">starting</span>
+                                    <span ng-switch-when="complete" class="center label label-success" style="width:60px">complete</span>
+                                    <span ng-switch-when="running" style="width:60px;" class="center label label-info" data-rel="popover" data-placement="bottom" data-content='Job Duration {{ row.duration }} seconds'>running</span>
+                                    <span ng-switch-when="delete_in_progress" class="center label label-success" style="width:60px">deleting</span>
+                                    <span ng-switch-default class="center label label-important" style="width:60px">error</span>
                                  </td>
                               </tr>
-                              {% endfor %}
                            </tbody>
                         </table>
                      </div>
@@ -106,29 +95,29 @@
                               </tr>
                            </thead>
 
-                           <tbody>
-                              {% for row in cluster_data %}
-                              <tr>
-                                 <td style="display:none">{{ row.uuid }}</td>
-                                 <td>{{ row.cluster_name }}</td>
-                                 <td>
-                                    {% if row.status == 'ready' %}
-                                    <span class="center label label-success" style="width:60px;">ready</span>
-                                    {% elif row.status == 'created' %}
-                                    <span class="center label label-info" style="width:60px;">created</span>
-                                    {% elif row.status == 'starting' %}
-                                    <span class="center label label-info" style="width:60px;">starting</span>
-                                    {% elif row.status == 'updating' %}
-                                    <span class="center label label-info" style="width:60px;">updating</span>
-                                    {% elif row.status == 'delete_in_progress' %}
-                                    <span class="center label label-important" style="width:60px;">deleting</span>
-                                    {% else %}
-                                    <span style="width:60px;" class="center label label-important" data-rel="popover" data-placement="left" title="<i class='icon-warning-sign orange'></i> {{ row.status_message }}" data-content='{{ row.error_info }}'>error</span>
-                                 {% endif %}
-                                 </td>
-                              </tr>
-                              {% endfor %}
-                           </tbody>
+                           <!--<tbody>-->
+                              <!--{% for row in cluster_data %}-->
+                              <!--<tr>-->
+                                 <!--<td style="display:none">{{ row.uuid }}</td>-->
+                                 <!--<td>{{ row.cluster_name }}</td>-->
+                                 <!--<td>-->
+                                    <!--{% if row.status == 'ready' %}-->
+                                    <!--<span class="center label label-success" style="width:60px;">ready</span>-->
+                                    <!--{% elif row.status == 'created' %}-->
+                                    <!--<span class="center label label-info" style="width:60px;">created</span>-->
+                                    <!--{% elif row.status == 'starting' %}-->
+                                    <!--<span class="center label label-info" style="width:60px;">starting</span>-->
+                                    <!--{% elif row.status == 'updating' %}-->
+                                    <!--<span class="center label label-info" style="width:60px;">updating</span>-->
+                                    <!--{% elif row.status == 'delete_in_progress' %}-->
+                                    <!--<span class="center label label-important" style="width:60px;">deleting</span>-->
+                                    <!--{% else %}-->
+                                    <!--<span style="width:60px;" class="center label label-important" data-rel="popover" data-placement="left" title="<i class='icon-warning-sign orange'></i> {{ row.status_message }}" data-content='{{ row.error_info }}'>error</span>-->
+                                 <!--{% endif %}-->
+                                 <!--</td>-->
+                              <!--</tr>-->
+                              <!--{% endfor %}-->
+                           <!--</tbody>-->
                         </table>
                      </div>
                   </div>
@@ -159,14 +148,14 @@
                                  </th>
                               </tr>
                            </thead>
-                           <tbody>
-                              {% for dco in data_connectors %}
-                              <tr>
-                                 <td>{{ dco.name }}</td>
-                                 <td>{{ dco.description }}</td>
-                              </tr>
-                              {% endfor %}
-                           </tbody>
+                           <!--<tbody>-->
+                              <!--{% for dco in data_connectors %}-->
+                              <!--<tr>-->
+                                 <!--<td>{{ dco.name }}</td>-->
+                                 <!--<td>{{ dco.description }}</td>-->
+                              <!--</tr>-->
+                              <!--{% endfor %}-->
+                           <!--</tbody>-->
                         </table>
                      </div>
                   </div>
@@ -224,81 +213,4 @@
       </div><!--row-fluid-->
    </div><!--row-fluid-->
 </div>
-{% endblock %}
-{% block page_script %}
-<style>
-
-rect {
-	-moz-transition: all 0.3s;
-	-webkit-transition: all 0.3s;
-	-o-transition: all 0.3s;
-	transition: all 0.3s;
-}
-
-rect:hover{
-	fill: orange;
-}
-
-</style>
-
-<script id="source" language="javascript" type="text/javascript">
-   $(document).ready(function() {
-
-       var setup_times = {{setup_times|safe}};
-       var run_times = {{run_times|safe}};
-       var map_times = {{map_times|safe}};
-       var reducer_times = {{reducer_times|safe}};
-       var num_map_tasks = {{num_map_tasks|safe}};
-       var num_reducer_tasks = {{num_reducer_tasks|safe}};
-       var show_highlighter = {{show_highlighter|safe}};
-       var job_names = {{job_names|safe}};
-
-       function updateData() {
-           updateDashboardVirtNodeList('{% url "dashboard_view" %}', false);
-       }
-
-       updateData();
-
-       var labels = [["Setup Time", "#1abc9c"], ["Run Time", "#3498db"]];
-       var axisText = ["Jobs", "Time (Seconds)"];
-       var elementId = '#id_jobcharts';
-
-       function hoverCallback(index) {
-           var html = '<p><strong>Job Name&nbsp;&nbsp;</strong><span>' + job_names[index] + '</span></p>';
-           html += '<p><strong>Setup Time&nbsp;&nbsp;</strong><span>' + parseInt(setup_times[index]/1000) + '</span></p>';
-           html += '<p><strong>Run Time&nbsp;&nbsp;</strong><span>' + parseInt(run_times[index]/1000) + '</span></p>';
-           html += '<p><strong>Mapper Time&nbsp;&nbsp;</strong><span>' + map_times[index] + '</span></p>';
-           html += '<p><strong>Reducer Time&nbsp;&nbsp;</strong><span>' + reducer_times[index] + '</span></p>';
-           html += '<p><strong>Num Mapper Tasks&nbsp;&nbsp;</strong><span>' + num_map_tasks[index] + '</span></p>';
-           html += '<p><strong>Num Reducer Tasks&nbsp;&nbsp;</strong><span>' + num_reducer_tasks[index] + '</span></p>';
-           return html;
-       }
-
-       var barData = [setup_times, run_times];
-
-       window.onresize = function(event) {
-           if (job_names.length != 0) {
-               d3.select("svg").remove();
-               d3Graph(elementId, barData, axisText, labels, hoverCallback);
-           }
-       };
-
-       if (barData[0].length != 0) {
-           d3Graph(elementId, barData, axisText, labels, hoverCallback);
-       }
-
-       //sync or updates datatables with backend
-       MANAGE_CLUSTER_URL = '{% url "managecluster_view" %}';
-       MANAGE_JOB_URL = '{% url "managejob_view" %}';
-
-       registerDashboardTable('cluster_table', 3);
-       registerDashboardTable('job_table', 3);
-       registerDashboardTable('dco_table', 2);
-
-       checkAndStartTimerCluster();
-       checkAndStartTimerJob();
-
-   });
-</script>
-{% endblock %}
 

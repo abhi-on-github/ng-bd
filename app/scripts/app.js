@@ -8,8 +8,19 @@
  *
  * Main module of the application.
  */
-angular
-  .module('bluedataApp', [
-    'ngAnimate',
-    'ngTouch'
-  ]);
+var bluedataApp = angular.module('bluedataApp', ['ngResource']);
+
+bluedataApp.config(function($routeProvider) {
+
+    $routeProvider.
+        when('/', {
+            controller: 'dashboard',
+            templateUrl: 'views/dashboard.html'
+        }).
+        when('/menu/:restaurantId', {
+            controller: 'MenuController',
+            templateUrl: 'views/menu.html'
+        });
+});
+
+

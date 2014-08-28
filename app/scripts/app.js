@@ -21,9 +21,37 @@ bluedataApp.config(function($routeProvider) {
             controller: 'DashboardCtrl',
             templateUrl: 'views/dashboard.html'
         }).
-        when('/menu/:restaurantId', {
-            controller: 'DashboardCtrl',
-            templateUrl: 'views/menu.html'
+        when('/manageuser', {
+            controller: 'ManageUserCtrl',
+            templateUrl: 'views/manageuser.html'
+        }).
+        when('/managevnode', {
+            controller: 'ManageVNodeCtrl',
+            templateUrl: 'views/managevnode.html'
+        }).
+        when('/managepnode', {     //managepnode view
+            controller: 'ManagePNodeCtrl',
+            templateUrl: 'views/managepnode.html'
+        }).
+        when('/managetenants', {
+            controller: 'ManageTenantsCtrl',
+            templateUrl: 'views/managetenants.html'
+        }).
+        when('/managedco', {
+            controller: 'ManageDcoCtrl',
+            templateUrl: 'views/managedco.html'
+        }).
+        when('/managecluster', {
+            controller: 'ManageClusterCtrl',
+            templateUrl: 'views/managedco.html'
+        }).
+        when('managejob', {
+            controller: 'ManageJobCtrl',
+            templateUrl: 'views/managejob.html'
+        });
+        when('tenantextras', {
+            controller: 'TenantExtrasCtrl',
+            templateUrl: 'views/tenantextras.html'
         });
 });
 

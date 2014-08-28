@@ -8,7 +8,7 @@
  * Controller of the bluedataApp
  */
 angular.module('bluedataApp')
-  .controller('DashboardCtrl', function ($scope) {
+  .controller('DashboardCtrl', function ($scope, $location, Dashboard) {
     $scope.jobs_data = [{uuid: 2,job_name: 'something',status: "created"},
         {uuid : 3,job_name: 'something',status: "starting"},
         {uuid: 4,job_name: 'something',status: "running"},

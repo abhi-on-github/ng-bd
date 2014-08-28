@@ -37,8 +37,15 @@
       <div class="header">
         <ul class="nav nav-pills pull-right">
           <li class="active"><a ng-href="#">Home</a></li>
-          <li><a ng-href="#">About</a></li>
-          <li><a ng-href="#">Contact</a></li>
+          <li><a ng-href="#/dashboard">Dashboard</a></li>
+          <li><a ng-href="#/tenants">Tenants</a></li>
+          <li><a ng-href="#/users">Users</a></li>
+          <li><a ng-href="#/pnodes">Physical Nodes</a></li>
+          <li><a ng-href="#/vnodes">Virtual Nodes</a></li>
+          <li><a ng-href="#">Sessions</a></li>
+          <li><a ng-href="#/dcos">Data Connectors</a></li>
+
+
         </ul>
         <h3 class="text-muted">bluedata</h3>
       </div>
@@ -91,6 +98,9 @@
         <!-- Controllers -->
         <script src="scripts/controllers/main.js"></script>
         <script src="scripts/controllers/dashboard.js"></script>
+
+        <!-- Services -->
+        <script src="scripts/services/bd-services.js"></script>
         <!-- endbuild -->
 </body>
 </html>

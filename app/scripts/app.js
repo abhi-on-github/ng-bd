@@ -21,35 +21,35 @@ bluedataApp.config(function($routeProvider) {
             controller: 'DashboardCtrl',
             templateUrl: 'views/dashboard.html'
         }).
-        when('/manageuser', {
+        when('/users', {
             controller: 'ManageUserCtrl',
             templateUrl: 'views/manageuser.html'
         }).
-        when('/managevnode', {
+        when('/vnodes', {
             controller: 'ManageVNodeCtrl',
             templateUrl: 'views/managevnode.html'
         }).
-        when('/managepnode', {     //managepnode view
+        when('/pnodes', {     //managepnode view
             controller: 'ManagePNodeCtrl',
             templateUrl: 'views/managepnode.html'
         }).
-        when('/managetenants', {
+        when('/tenants', {
             controller: 'ManageTenantsCtrl',
             templateUrl: 'views/managetenants.html'
         }).
-        when('/managedco', {
+        when('/dcos', {
             controller: 'ManageDcoCtrl',
             templateUrl: 'views/managedco.html'
         }).
-        when('/managecluster', {
+        when('/clusters', {
             controller: 'ManageClusterCtrl',
             templateUrl: 'views/managedco.html'
         }).
-        when('managejob', {
+        when('/jobs', {
             controller: 'ManageJobCtrl',
             templateUrl: 'views/managejob.html'
-        });
-        when('tenantextras', {
+        }).
+        when('/tenantextras', {
             controller: 'TenantExtrasCtrl',
             templateUrl: 'views/tenantextras.html'
         });

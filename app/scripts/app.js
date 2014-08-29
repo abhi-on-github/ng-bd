@@ -49,6 +49,10 @@ bluedataApp.config(function($routeProvider) {
             controller: 'ManageJobCtrl',
             templateUrl: 'views/managejob.html'
         }).
+        when('/createtenant', {
+            controller: 'CreateTenantCtrl',
+            templateUrl: 'views/createtenant.html'
+        }).
         when('/tenantextras', {
             controller: 'TenantExtrasCtrl',
             templateUrl: 'views/tenantextras.html'

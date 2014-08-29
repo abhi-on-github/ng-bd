@@ -34,8 +34,8 @@ bluedataApp.config(function($routeProvider) {
             templateUrl: 'views/managepnode.html'
         }).
         when('/tenants', {
-            controller: 'ManageTenantsCtrl',
-            templateUrl: 'views/managetenants.html'
+            controller: 'ManageTenantCtrl',
+            templateUrl: 'views/managetenant.html'
         }).
         when('/dcos', {
             controller: 'ManageDcoCtrl',
@@ -43,7 +43,7 @@ bluedataApp.config(function($routeProvider) {
         }).
         when('/clusters', {
             controller: 'ManageClusterCtrl',
-            templateUrl: 'views/managedco.html'
+            templateUrl: 'views/managecluster.html'
         }).
         when('/jobs', {
             controller: 'ManageJobCtrl',
